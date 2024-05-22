@@ -48,7 +48,6 @@ class SemSegLoss(object):
             class_wt = DataProcessing.get_class_weights(
                 dataset.cfg.class_weights)
             weights = torch.tensor(class_wt, dtype=torch.float, device=device)
-
             self.weighted_CrossEntropyLoss = nn.CrossEntropyLoss(weight=weights)
         else:
             self.weighted_CrossEntropyLoss = nn.CrossEntropyLoss()

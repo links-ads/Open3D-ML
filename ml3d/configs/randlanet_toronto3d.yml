@@ -1,7 +1,7 @@
 dataset:
   name: Toronto3D
-  cache_dir: ./logs/cache
-  dataset_path: # path/to/your/dataset
+  cache_dir: ./dataset_cache
+  dataset_path: data/digitwin/Toronto3D
   class_weights: [41697357, 1745448, 6572572, 19136493, 674897, 897825, 4634634, 374721]
   ignored_label_inds:
   - 0
@@ -30,6 +30,7 @@ model:
   ignored_label_inds: [0]
   sub_sampling_ratio: [4, 4, 4, 4, 2]
   in_channels: 6
+  dim_input: 6
   dim_features: 8
   dim_output: [16, 64, 128, 256, 512]
   grid_size: 0.05
@@ -51,6 +52,8 @@ pipeline:
   test_batch_size: 1
   train_sum_dir: train_log
   val_batch_size: 2
+  num_workers: 0
+  pin_memory: false
   summary:
     record_for: []
     max_pts:

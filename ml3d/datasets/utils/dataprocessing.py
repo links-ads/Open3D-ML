@@ -11,11 +11,7 @@ from .operations import *
 class DataProcessing:
 
     @staticmethod
-    def grid_subsampling(points,
-                         features=None,
-                         labels=None,
-                         grid_size=0.1,
-                         verbose=0):
+    def grid_subsampling(points, features=None, labels=None, grid_size=0.1, verbose=0):
         """CPP wrapper for a grid subsampling (method = barycenter for points and
         features).
 
@@ -31,38 +27,36 @@ class DataProcessing:
         """
         if (features is None) and (labels is None):
             return subsample(points, sampleDl=grid_size, verbose=verbose)
-        elif (labels is None):
-            return subsample(points,
-                             features=features,
-                             sampleDl=grid_size,
-                             verbose=verbose)
-        elif (features is None):
-            return subsample(points,
-                             classes=labels,
-                             sampleDl=grid_size,
-                             verbose=verbose)
+        elif labels is None:
+            return subsample(
+                points, features=features, sampleDl=grid_size, verbose=verbose
+            )
+        elif features is None:
+            return subsample(
+                points, classes=labels, sampleDl=grid_size, verbose=verbose
+            )
         else:
-            return subsample(points,
-                             features=features,
-                             classes=labels,
-                             sampleDl=grid_size,
-                             verbose=verbose)
+            return subsample(
+                points,
+                features=features,
+                classes=labels,
+                sampleDl=grid_size,
+                verbose=verbose,
+            )
 
     @staticmethod
     def load_pc_semantic3d(filename):
-        pc_pd = pd.read_csv(filename,
-                            header=None,
-                            delim_whitespace=True,
-                            dtype=np.float16)
+        pc_pd = pd.read_csv(
+            filename, header=None, delim_whitespace=True, dtype=np.float16
+        )
         pc = pc_pd.values
         return pc
 
     @staticmethod
     def load_label_semantic3d(filename):
-        label_pd = pd.read_csv(filename,
-                               header=None,
-                               delim_whitespace=True,
-                               dtype=np.uint8)
+        label_pd = pd.read_csv(
+            filename, header=None, delim_whitespace=True, dtype=np.uint8
+        )
         cloud_labels = label_pd.values
         return cloud_labels
 
@@ -80,7 +74,7 @@ class DataProcessing:
         label = label.reshape((-1))
         sem_label = label & 0xFFFF  # semantic label in lower half
         inst_label = label >> 16  # instance id in upper half
-        assert ((sem_label + (inst_label << 16) == label).all())
+        assert (sem_label + (inst_label << 16) == label).all()
         sem_label = remap_lut[sem_label]
         return sem_label.astype(np.int32)
 
@@ -169,7 +163,6 @@ class DataProcessing:
 
         weight = num_per_class / float(sum(num_per_class))
         ce_label_weight = 1 / (weight + 0.02)
-
         return ce_label_weight
 
     @staticmethod
@@ -186,23 +179,23 @@ class DataProcessing:
     @staticmethod
     def world2cam(points, world_cam):
         # transform in cam space
-        points = np.hstack(
-            (points, np.ones((points.shape[0], 1), dtype=np.float32)))
+        points = np.hstack((points, np.ones((points.shape[0], 1), dtype=np.float32)))
 
         for i in range(len(points) // 10000 + 1):
-            points[i * 10000:(i + 1) * 10000] = np.matmul(
-                points[i * 10000:(i + 1) * 10000], world_cam)
+            points[i * 10000 : (i + 1) * 10000] = np.matmul(
+                points[i * 10000 : (i + 1) * 10000], world_cam
+            )
 
         return points[..., :3]
 
     @staticmethod
     def cam2img(points, cam_img):
         # transform in image space
-        points = np.hstack(
-            (points, np.ones((points.shape[0], 1), dtype=np.float32)))
+        points = np.hstack((points, np.ones((points.shape[0], 1), dtype=np.float32)))
         for i in range(len(points) // 10000 + 1):
-            points[i * 10000:(i + 1) * 10000] = np.matmul(
-                points[i * 10000:(i + 1) * 10000], cam_img)
+            points[i * 10000 : (i + 1) * 10000] = np.matmul(
+                points[i * 10000 : (i + 1) * 10000], cam_img
+            )
         pts_img = (points[:, :2].T / points[:, 3]).T  # (N, 2)
         depth = points[:, 2] - cam_img[3, 2]  # depth in rect camera coord
         return pts_img, depth
@@ -212,8 +205,7 @@ class DataProcessing:
         cam_world = DataProcessing.invT(world_cam)
 
         # transform in world space
-        points = np.hstack(
-            (points, np.ones((points.shape[0], 1), dtype=np.float32)))
+        points = np.hstack((points, np.ones((points.shape[0], 1), dtype=np.float32)))
         return np.matmul(points, cam_world)[..., :3]
 
     @staticmethod
@@ -234,10 +226,8 @@ class DataProcessing:
         pts_cam = DataProcessing.world2cam(points[:, :3], world_cam)
         pts_img, depth = DataProcessing.cam2img(pts_cam, cam_img)
 
-        val_flag_1 = np.logical_and(pts_img[:, 0] >= 0,
-                                    pts_img[:, 0] < image_shape[1])
-        val_flag_2 = np.logical_and(pts_img[:, 1] >= 0,
-                                    pts_img[:, 1] < image_shape[0])
+        val_flag_1 = np.logical_and(pts_img[:, 0] >= 0, pts_img[:, 0] < image_shape[1])
+        val_flag_2 = np.logical_and(pts_img[:, 1] >= 0, pts_img[:, 1] < image_shape[0])
         val_flag_merge = np.logical_and(val_flag_1, val_flag_2)
         valid = np.logical_and(val_flag_merge, depth >= 0)
 

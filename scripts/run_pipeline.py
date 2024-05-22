@@ -11,7 +11,6 @@ from torch import multiprocessing
 
 import open3d.ml as _ml3d
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a network')
     parser.add_argument('framework',

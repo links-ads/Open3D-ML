@@ -1,9 +1,11 @@
 import numpy as np
+from numpy.lib.recfunctions import merge_arrays
 import pandas as pd
 import os, sys, glob, pickle
 from pathlib import Path
 from os.path import join, exists, dirname, abspath
-from sklearn.neighbors import KDTree
+from plyfile import PlyData, PlyElement
+
 import logging
 import open3d as o3d
 
@@ -13,23 +15,20 @@ from ..utils import make_dir, DATASET
 log = logging.getLogger(__name__)
 
 
-class Toronto3D(BaseDataset):
-    """Toronto3D dataset, used in visualizer, training, or test."""
+class SUMDataset(BaseDataset):
+    """Delft SUM dataset, used in visualizer, training, or test."""
 
     def __init__(self,
                  dataset_path,
-                 name='Toronto3D',
+                 name='SUMDataset',
                  cache_dir='./logs/cache',
                  use_cache=False,
                  num_points=65536,
-                 class_weights=[
-                     35391894., 1449308., 4650919., 18252779., 589856., 743579.,
-                     4311631., 356463.
-                 ],
+                 class_weights=[], #TODO evaluate class weights
                  ignored_label_inds=[0],
-                 train_files=['L001.ply', 'L003.ply', 'L004.ply'],
-                 val_files=['L002.ply'],
-                 test_files=['L002.ply'],
+                 train_files='train/*',
+                 val_files='validate/*',
+                 test_files='test/*',
                  test_result_folder='./test',
                  **kwargs):
         """Initialize the function by passing the dataset and other details.
@@ -65,18 +64,27 @@ class Toronto3D(BaseDataset):
         self.label_to_names = self.get_label_to_names()
 
         self.dataset_path = cfg.dataset_path
-        self.num_classes = kwargs.get('num_classes',len(self.label_to_names))
+        self.num_classes = len(self.label_to_names)
         self.label_values = np.sort([k for k, v in self.label_to_names.items()])
         self.label_to_idx = {l: i for i, l in enumerate(self.label_values)}
         self.ignored_labels = np.array(cfg.ignored_label_inds)
 
-        self.train_files = [
-            join(self.cfg.dataset_path, f) for f in cfg.train_files
-        ]
-        self.val_files = [join(self.cfg.dataset_path, f) for f in cfg.val_files]
-        self.test_files = [
-            join(self.cfg.dataset_path, f) for f in cfg.test_files
-        ]
+        if type(cfg.train_files) == list:
+            self.train_files = [
+                join(self.cfg.dataset_path, f) for f in cfg.train_files
+            ]
+        else:
+            self.train_files = glob.glob(join(self.cfg.dataset_path, cfg.train_files))
+
+        if type(cfg.val_files) == list:
+            self.val_files = [join(self.cfg.dataset_path, f) for f in cfg.val_files]
+        else:
+            self.val_files = glob.glob(join(self.cfg.dataset_path, cfg.val_files))
+        
+        if type(cfg.test_files) == list:
+            self.test_files = [join(self.cfg.dataset_path, f) for f in cfg.test_files]
+        else:
+            self.test_files = glob.glob(join(self.cfg.dataset_path, cfg.test_files))
 
     @staticmethod
     def get_label_to_names():
@@ -88,14 +96,12 @@ class Toronto3D(BaseDataset):
         """
         label_to_names = {
             0: 'Unclassified',
-            1: 'Ground',
-            2: 'Road_markings',
-            3: 'Natural',
-            4: 'Building',
-            5: 'Utility_line',
-            6: 'Pole',
-            7: 'Car',
-            8: 'Fence'
+            1: 'Terrain',
+            2: 'High_Vegetation',
+            3: 'Building',
+            4: 'Water',
+            5: 'Car',
+            6: 'Boat'
         }
         return label_to_names
 
@@ -109,7 +115,7 @@ class Toronto3D(BaseDataset):
         Returns:
             A dataset split object providing the requested subset of the data.
         """
-        return Toronto3DSplit(self, split=split)
+        return SUMDatasetSplit(self, split=split)
 
     def get_split_list(self, split):
         """Returns the list of data splits available.
@@ -152,7 +158,7 @@ class Toronto3D(BaseDataset):
         cfg = self.cfg
         name = attr['name']
         path = cfg.test_result_folder
-        store_path = join(path, self.name, name + '.npy')
+        store_path = join(path, self.name, name + '.ply')
         if exists(store_path):
             print("{} already exists.".format(store_path))
             return True
@@ -177,20 +183,25 @@ class Toronto3D(BaseDataset):
         for ign in cfg.ignored_label_inds:
             pred[pred >= ign] += 1
 
-        store_path = join(path, self.name, name + '.npy')
-        make_dir(Path(store_path).parent)
-        np.save(store_path, pred)
-        log.info("Saved {} in {}.".format(name, store_path))
+        plydata = PlyData.read(attr['path'])
+        prop_names = [p.name for p in plydata.elements[0].properties]
+        if 'class_pred' not in prop_names:
+            a = merge_arrays([plydata.elements[0].data, pred], flatten=True)
+            v = PlyElement.describe(a, 'vertex')
+            plydata = PlyData([v], text=True)
+        else:
+            plydata.elements[0].data['class_pred'] = pred
+        plydata.write(join(path, self.name, name + '.ply'))
 
 
-class Toronto3DSplit(BaseDatasetSplit):
+class SUMDatasetSplit(BaseDatasetSplit):
 
     def __init__(self, dataset, split='training'):
         super().__init__(dataset, split=split)
 
         log.info("Found {} pointclouds for {}".format(len(self.path_list),
                                                       split))
-        self.UTM_OFFSET = [627285, 4841948, 0]
+        self.offset = [0, 0, 0]
 
     def __len__(self):
         return len(self.path_list)
@@ -201,12 +212,17 @@ class Toronto3DSplit(BaseDatasetSplit):
 
         data = o3d.t.io.read_point_cloud(pc_path).point
 
-        points = data["positions"].numpy() - self.UTM_OFFSET
+        points = data["positions"].numpy() - self.offset
         points = np.float32(points)
-        assert not np.isnan(points).any(), f"Nan points in {pc_path}"
-        feat = data["colors"].numpy().astype(np.float32)
 
-        labels = data['scalar_Label'].numpy().astype(np.int32).reshape((-1,))
+        feat = np.concatenate([
+                            data['r'].numpy(),
+                            data['g'].numpy(),
+                            data['b'].numpy()],axis=1) * 255
+
+        labels = data['label'].numpy().astype(np.int32).reshape((-1,))
+        # Unclassified class is -1, we set it to 0
+        labels[labels == -1] = 0
 
         data = {'point': points, 'feat': feat, 'label': labels}
 
@@ -223,4 +239,4 @@ class Toronto3DSplit(BaseDatasetSplit):
         return attr
 
 
-DATASET._register_module(Toronto3D)
+DATASET._register_module(SUMDataset)
