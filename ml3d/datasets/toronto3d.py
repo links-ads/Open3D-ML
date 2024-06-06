@@ -16,22 +16,30 @@ log = logging.getLogger(__name__)
 class Toronto3D(BaseDataset):
     """Toronto3D dataset, used in visualizer, training, or test."""
 
-    def __init__(self,
-                 dataset_path,
-                 name='Toronto3D',
-                 cache_dir='./logs/cache',
-                 use_cache=False,
-                 num_points=65536,
-                 class_weights=[
-                     35391894., 1449308., 4650919., 18252779., 589856., 743579.,
-                     4311631., 356463.
-                 ],
-                 ignored_label_inds=[0],
-                 train_files=['L001.ply', 'L003.ply', 'L004.ply'],
-                 val_files=['L002.ply'],
-                 test_files=['L002.ply'],
-                 test_result_folder='./test',
-                 **kwargs):
+    def __init__(
+        self,
+        dataset_path,
+        name="Toronto3D",
+        cache_dir="./logs/cache",
+        use_cache=False,
+        num_points=65536,
+        class_weights=[
+            35391894.0,
+            1449308.0,
+            4650919.0,
+            18252779.0,
+            589856.0,
+            743579.0,
+            4311631.0,
+            356463.0,
+        ],
+        ignored_label_inds=[0],
+        train_files=["L001.ply", "L003.ply", "L004.ply"],
+        val_files=["L002.ply"],
+        test_files=["L002.ply"],
+        test_result_folder="./test",
+        **kwargs,
+    ):
         """Initialize the function by passing the dataset and other details.
 
         Args:
@@ -47,36 +55,34 @@ class Toronto3D(BaseDataset):
         Returns:
             class: The corresponding class.
         """
-        super().__init__(dataset_path=dataset_path,
-                         name=name,
-                         cache_dir=cache_dir,
-                         use_cache=use_cache,
-                         class_weights=class_weights,
-                         num_points=num_points,
-                         ignored_label_inds=ignored_label_inds,
-                         train_files=train_files,
-                         test_files=test_files,
-                         val_files=val_files,
-                         test_result_folder=test_result_folder,
-                         **kwargs)
+        super().__init__(
+            dataset_path=dataset_path,
+            name=name,
+            cache_dir=cache_dir,
+            use_cache=use_cache,
+            class_weights=class_weights,
+            num_points=num_points,
+            ignored_label_inds=ignored_label_inds,
+            train_files=train_files,
+            test_files=test_files,
+            val_files=val_files,
+            test_result_folder=test_result_folder,
+            **kwargs,
+        )
 
         cfg = self.cfg
 
         self.label_to_names = self.get_label_to_names()
 
         self.dataset_path = cfg.dataset_path
-        self.num_classes = kwargs.get('num_classes',len(self.label_to_names))
+        self.num_classes = kwargs.get("num_classes", len(self.label_to_names))
         self.label_values = np.sort([k for k, v in self.label_to_names.items()])
         self.label_to_idx = {l: i for i, l in enumerate(self.label_values)}
         self.ignored_labels = np.array(cfg.ignored_label_inds)
 
-        self.train_files = [
-            join(self.cfg.dataset_path, f) for f in cfg.train_files
-        ]
+        self.train_files = [join(self.cfg.dataset_path, f) for f in cfg.train_files]
         self.val_files = [join(self.cfg.dataset_path, f) for f in cfg.val_files]
-        self.test_files = [
-            join(self.cfg.dataset_path, f) for f in cfg.test_files
-        ]
+        self.test_files = [join(self.cfg.dataset_path, f) for f in cfg.test_files]
 
     @staticmethod
     def get_label_to_names():
@@ -87,15 +93,15 @@ class Toronto3D(BaseDataset):
             values are the corresponding names.
         """
         label_to_names = {
-            0: 'Unclassified',
-            1: 'Ground',
-            2: 'Road_markings',
-            3: 'Natural',
-            4: 'Building',
-            5: 'Utility_line',
-            6: 'Pole',
-            7: 'Car',
-            8: 'Fence'
+            0: "Unclassified",
+            1: "Ground",
+            2: "Road_markings",
+            3: "Natural",
+            4: "Building",
+            5: "Utility_line",
+            6: "Pole",
+            7: "Car",
+            8: "Fence",
         }
         return label_to_names
 
@@ -126,13 +132,13 @@ class Toronto3D(BaseDataset):
             split name should be one of 'training', 'test', 'validation', or
             'all'.
         """
-        if split in ['test', 'testing']:
+        if split in ["test", "testing"]:
             files = self.test_files
-        elif split in ['train', 'training']:
+        elif split in ["train", "training"]:
             files = self.train_files
-        elif split in ['val', 'validation']:
+        elif split in ["val", "validation"]:
             files = self.val_files
-        elif split in ['all']:
+        elif split in ["all"]:
             files = self.val_files + self.train_files + self.test_files
         else:
             raise ValueError("Invalid split {}".format(split))
@@ -150,9 +156,9 @@ class Toronto3D(BaseDataset):
                 attribute is stored; else, returns false.
         """
         cfg = self.cfg
-        name = attr['name']
+        name = attr["name"]
         path = cfg.test_result_folder
-        store_path = join(path, self.name, name + '.npy')
+        store_path = join(path, self.name, name + ".npy")
         if exists(store_path):
             print("{} already exists.".format(store_path))
             return True
@@ -167,17 +173,17 @@ class Toronto3D(BaseDataset):
             attr: The attributes that correspond to the outputs passed in results.
         """
         cfg = self.cfg
-        name = attr['name'].split('.')[0]
+        name = attr["name"].split(".")[0]
         path = cfg.test_result_folder
         make_dir(path)
 
-        pred = results['predict_labels']
+        pred = results["predict_labels"]
         pred = np.array(pred)
 
         for ign in cfg.ignored_label_inds:
             pred[pred >= ign] += 1
 
-        store_path = join(path, self.name, name + '.npy')
+        store_path = join(path, name + ".npy")
         make_dir(Path(store_path).parent)
         np.save(store_path, pred)
         log.info("Saved {} in {}.".format(name, store_path))
@@ -185,11 +191,10 @@ class Toronto3D(BaseDataset):
 
 class Toronto3DSplit(BaseDatasetSplit):
 
-    def __init__(self, dataset, split='training'):
+    def __init__(self, dataset, split="training"):
         super().__init__(dataset, split=split)
 
-        log.info("Found {} pointclouds for {}".format(len(self.path_list),
-                                                      split))
+        log.info("Found {} pointclouds for {}".format(len(self.path_list), split))
         self.UTM_OFFSET = [627285, 4841948, 0]
 
     def __len__(self):
@@ -206,19 +211,19 @@ class Toronto3DSplit(BaseDatasetSplit):
         assert not np.isnan(points).any(), f"Nan points in {pc_path}"
         feat = data["colors"].numpy().astype(np.float32)
 
-        labels = data['scalar_Label'].numpy().astype(np.int32).reshape((-1,))
+        labels = data["scalar_Label"].numpy().astype(np.int32).reshape((-1,))
 
-        data = {'point': points, 'feat': feat, 'label': labels}
+        data = {"point": points, "feat": feat, "label": labels}
 
         return data
 
     def get_attr(self, idx):
         pc_path = Path(self.path_list[idx])
-        name = pc_path.name.replace('.txt', '')
+        name = pc_path.name.replace(".txt", "")
 
         pc_path = str(pc_path)
         split = self.split
-        attr = {'idx': idx, 'name': name, 'path': pc_path, 'split': split}
+        attr = {"idx": idx, "name": name, "path": pc_path, "split": split}
 
         return attr
 

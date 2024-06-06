@@ -18,19 +18,21 @@ log = logging.getLogger(__name__)
 class SUMDataset(BaseDataset):
     """Delft SUM dataset, used in visualizer, training, or test."""
 
-    def __init__(self,
-                 dataset_path,
-                 name='SUMDataset',
-                 cache_dir='./logs/cache',
-                 use_cache=False,
-                 num_points=65536,
-                 class_weights=[], #TODO evaluate class weights
-                 ignored_label_inds=[0],
-                 train_files='train/*',
-                 val_files='validate/*',
-                 test_files='test/*',
-                 test_result_folder='./test',
-                 **kwargs):
+    def __init__(
+        self,
+        dataset_path,
+        name="SUMDataset",
+        cache_dir="./logs/cache",
+        use_cache=False,
+        num_points=65536,
+        class_weights=[],  # TODO evaluate class weights
+        ignored_label_inds=[0],
+        train_files="train/*",
+        val_files="validate/*",
+        test_files="test/*",
+        test_result_folder="./test",
+        **kwargs
+    ):
         """Initialize the function by passing the dataset and other details.
 
         Args:
@@ -46,18 +48,20 @@ class SUMDataset(BaseDataset):
         Returns:
             class: The corresponding class.
         """
-        super().__init__(dataset_path=dataset_path,
-                         name=name,
-                         cache_dir=cache_dir,
-                         use_cache=use_cache,
-                         class_weights=class_weights,
-                         num_points=num_points,
-                         ignored_label_inds=ignored_label_inds,
-                         train_files=train_files,
-                         test_files=test_files,
-                         val_files=val_files,
-                         test_result_folder=test_result_folder,
-                         **kwargs)
+        super().__init__(
+            dataset_path=dataset_path,
+            name=name,
+            cache_dir=cache_dir,
+            use_cache=use_cache,
+            class_weights=class_weights,
+            num_points=num_points,
+            ignored_label_inds=ignored_label_inds,
+            train_files=train_files,
+            test_files=test_files,
+            val_files=val_files,
+            test_result_folder=test_result_folder,
+            **kwargs
+        )
 
         cfg = self.cfg
 
@@ -70,9 +74,7 @@ class SUMDataset(BaseDataset):
         self.ignored_labels = np.array(cfg.ignored_label_inds)
 
         if type(cfg.train_files) == list:
-            self.train_files = [
-                join(self.cfg.dataset_path, f) for f in cfg.train_files
-            ]
+            self.train_files = [join(self.cfg.dataset_path, f) for f in cfg.train_files]
         else:
             self.train_files = glob.glob(join(self.cfg.dataset_path, cfg.train_files))
 
@@ -80,7 +82,7 @@ class SUMDataset(BaseDataset):
             self.val_files = [join(self.cfg.dataset_path, f) for f in cfg.val_files]
         else:
             self.val_files = glob.glob(join(self.cfg.dataset_path, cfg.val_files))
-        
+
         if type(cfg.test_files) == list:
             self.test_files = [join(self.cfg.dataset_path, f) for f in cfg.test_files]
         else:
@@ -95,13 +97,13 @@ class SUMDataset(BaseDataset):
             values are the corresponding names.
         """
         label_to_names = {
-            0: 'Unclassified',
-            1: 'Terrain',
-            2: 'High_Vegetation',
-            3: 'Building',
-            4: 'Water',
-            5: 'Car',
-            6: 'Boat'
+            0: "Unclassified",
+            1: "Terrain",
+            2: "High_Vegetation",
+            3: "Building",
+            4: "Water",
+            5: "Car",
+            6: "Boat",
         }
         return label_to_names
 
@@ -132,13 +134,13 @@ class SUMDataset(BaseDataset):
             split name should be one of 'training', 'test', 'validation', or
             'all'.
         """
-        if split in ['test', 'testing']:
+        if split in ["test", "testing"]:
             files = self.test_files
-        elif split in ['train', 'training']:
+        elif split in ["train", "training"]:
             files = self.train_files
-        elif split in ['val', 'validation']:
+        elif split in ["val", "validation"]:
             files = self.val_files
-        elif split in ['all']:
+        elif split in ["all"]:
             files = self.val_files + self.train_files + self.test_files
         else:
             raise ValueError("Invalid split {}".format(split))
@@ -156,9 +158,9 @@ class SUMDataset(BaseDataset):
                 attribute is stored; else, returns false.
         """
         cfg = self.cfg
-        name = attr['name']
+        name = attr["name"]
         path = cfg.test_result_folder
-        store_path = join(path, self.name, name + '.ply')
+        store_path = join(path, self.name, name + ".ply")
         if exists(store_path):
             print("{} already exists.".format(store_path))
             return True
@@ -173,34 +175,33 @@ class SUMDataset(BaseDataset):
             attr: The attributes that correspond to the outputs passed in results.
         """
         cfg = self.cfg
-        name = attr['name'].split('.')[0]
+        name = attr["name"].split(".")[0]
         path = cfg.test_result_folder
         make_dir(path)
 
-        pred = results['predict_labels']
+        pred = results["predict_labels"]
         pred = np.array(pred)
 
         for ign in cfg.ignored_label_inds:
             pred[pred >= ign] += 1
 
-        plydata = PlyData.read(attr['path'])
+        plydata = PlyData.read(attr["path"])
         prop_names = [p.name for p in plydata.elements[0].properties]
-        if 'class_pred' not in prop_names:
+        if "class_pred" not in prop_names:
             a = merge_arrays([plydata.elements[0].data, pred], flatten=True)
-            v = PlyElement.describe(a, 'vertex')
+            v = PlyElement.describe(a, "vertex")
             plydata = PlyData([v], text=True)
         else:
-            plydata.elements[0].data['class_pred'] = pred
-        plydata.write(join(path, self.name, name + '.ply'))
+            plydata.elements[0].data["class_pred"] = pred
+        plydata.write(join(path, name + ".ply"))
 
 
 class SUMDatasetSplit(BaseDatasetSplit):
 
-    def __init__(self, dataset, split='training'):
+    def __init__(self, dataset, split="training"):
         super().__init__(dataset, split=split)
 
-        log.info("Found {} pointclouds for {}".format(len(self.path_list),
-                                                      split))
+        log.info("Found {} pointclouds for {}".format(len(self.path_list), split))
         self.offset = [0, 0, 0]
 
     def __len__(self):
@@ -215,26 +216,28 @@ class SUMDatasetSplit(BaseDatasetSplit):
         points = data["positions"].numpy() - self.offset
         points = np.float32(points)
 
-        feat = np.concatenate([
-                            data['r'].numpy(),
-                            data['g'].numpy(),
-                            data['b'].numpy()],axis=1) * 255
+        feat = (
+            np.concatenate(
+                [data["r"].numpy(), data["g"].numpy(), data["b"].numpy()], axis=1
+            )
+            * 255
+        )
 
-        labels = data['label'].numpy().astype(np.int32).reshape((-1,))
+        labels = data["label"].numpy().astype(np.int32).reshape((-1,))
         # Unclassified class is -1, we set it to 0
         labels[labels == -1] = 0
 
-        data = {'point': points, 'feat': feat, 'label': labels}
+        data = {"point": points, "feat": feat, "label": labels}
 
         return data
 
     def get_attr(self, idx):
         pc_path = Path(self.path_list[idx])
-        name = pc_path.name.replace('.txt', '')
+        name = pc_path.name.replace(".txt", "")
 
         pc_path = str(pc_path)
         split = self.split
-        attr = {'idx': idx, 'name': name, 'path': pc_path, 'split': split}
+        attr = {"idx": idx, "name": name, "path": pc_path, "split": split}
 
         return attr
 

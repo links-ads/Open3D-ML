@@ -18,8 +18,9 @@ class ConfigDict(Dict):
         try:
             value = super(ConfigDict, self).__getattr__(name)
         except KeyError:
-            ex = AttributeError(f"'{self.__class__.__name__}' object has no "
-                                f"attribute '{name}'")
+            ex = AttributeError(
+                f"'{self.__class__.__name__}' object has no " f"attribute '{name}'"
+            )
         except Exception as e:
             ex = e
         else:
@@ -27,22 +28,22 @@ class ConfigDict(Dict):
         raise ex
 
 
-def add_args(parser, cfg, prefix=''):
+def add_args(parser, cfg, prefix=""):
     for k, v in cfg.items():
         if isinstance(v, str):
-            parser.add_argument('--' + prefix + k)
+            parser.add_argument("--" + prefix + k)
         elif isinstance(v, int):
-            parser.add_argument('--' + prefix + k, type=int)
+            parser.add_argument("--" + prefix + k, type=int)
         elif isinstance(v, float):
-            parser.add_argument('--' + prefix + k, type=float)
+            parser.add_argument("--" + prefix + k, type=float)
         elif isinstance(v, bool):
-            parser.add_argument('--' + prefix + k, action='store_true')
+            parser.add_argument("--" + prefix + k, action="store_true")
         elif isinstance(v, dict):
-            add_args(parser, v, prefix + k + '.')
+            add_args(parser, v, prefix + k + ".")
         elif isinstance(v, abc.Iterable):
-            parser.add_argument('--' + prefix + k, type=type(v[0]), nargs='+')
+            parser.add_argument("--" + prefix + k, type=type(v[0]), nargs="+")
         else:
-            print(f'cannot parse key {prefix + k} of type {type(v)}')
+            print(f"cannot parse key {prefix + k} of type {type(v)}")
     return parser
 
 
@@ -52,10 +53,9 @@ class Config(object):
         if cfg_dict is None:
             cfg_dict = dict()
         elif not isinstance(cfg_dict, dict):
-            raise TypeError('cfg_dict should be a dict, but'
-                            f'got {type(cfg_dict)}')
+            raise TypeError("cfg_dict should be a dict, but" f"got {type(cfg_dict)}")
 
-        super(Config, self).__setattr__('_cfg_dict', ConfigDict(cfg_dict))
+        super(Config, self).__setattr__("_cfg_dict", ConfigDict(cfg_dict))
 
         self.cfg_dict = cfg_dict
 
@@ -74,14 +74,14 @@ class Config(object):
         self_as_dict = convert_to_dict(self._cfg_dict, [])
         print(self_as_dict)
         return yaml.dump(self_as_dict, *args, **kwargs)
-        #return self_as_dict
+        # return self_as_dict
 
     def convert_to_tf_names(self, name):
         """Convert keys compatible with tensorflow."""
         cfg = self._cfg_dict
         with open(
-                os.path.join(
-                    Path(__file__).parent, '../configs/torch_to_tf.yml')) as f:
+            os.path.join(Path(__file__).parent, "../configs/torch_to_tf.yml")
+        ) as f:
             mapping = yaml.safe_load(f)[name]
 
         def convert_dict(cfg, mapping):
@@ -101,7 +101,7 @@ class Config(object):
             return cfg_new
 
         cfg = convert_dict(cfg, mapping)
-        super(Config, self).__setattr__('_cfg_dict', ConfigDict(cfg))
+        super(Config, self).__setattr__("_cfg_dict", ConfigDict(cfg))
 
     @staticmethod
     def merge_cfg_file(cfg, args, extra_dict):
@@ -121,24 +121,27 @@ class Config(object):
             cfg.dataset.dataset_path = args.dataset_path
         if args.ckpt_path is not None:
             cfg.model.ckpt_path = args.ckpt_path
+        if args.experiment is not None and not hasattr(cfg.pipeline, "experiment"):
+            cfg.pipeline.experiment = args.experiment
 
-        extra_cfg_dict = {'model': {}, 'dataset': {}, 'pipeline': {}}
+        extra_cfg_dict = {"model": {}, "dataset": {}, "pipeline": {}}
 
         for full_key, v in extra_dict.items():
             d = extra_cfg_dict
-            key_list = full_key.split('.')
+            key_list = full_key.split(".")
             for subkey in key_list[:-1]:
                 d.setdefault(subkey, ConfigDict())
                 d = d[subkey]
             subkey = key_list[-1]
             d[subkey] = v
 
-        cfg_dict_dataset = Config._merge_a_into_b(extra_cfg_dict['dataset'],
-                                                  cfg.dataset)
-        cfg_dict_pipeline = Config._merge_a_into_b(extra_cfg_dict['pipeline'],
-                                                   cfg.pipeline)
-        cfg_dict_model = Config._merge_a_into_b(extra_cfg_dict['model'],
-                                                cfg.model)
+        cfg_dict_dataset = Config._merge_a_into_b(
+            extra_cfg_dict["dataset"], cfg.dataset
+        )
+        cfg_dict_pipeline = Config._merge_a_into_b(
+            extra_cfg_dict["pipeline"], cfg.pipeline
+        )
+        cfg_dict_model = Config._merge_a_into_b(extra_cfg_dict["model"], cfg.model)
 
         return cfg_dict_dataset, cfg_dict_pipeline, cfg_dict_model
 
@@ -154,9 +157,9 @@ class Config(object):
         cfg_pipeline = Config.load_from_file(args.cfg_pipeline)
 
         cfg_dict = {
-            'dataset': cfg_dataset.cfg_dict,
-            'model': cfg_model.cfg_dict,
-            'pipeline': cfg_pipeline.cfg_dict
+            "dataset": cfg_dataset.cfg_dict,
+            "model": cfg_model.cfg_dict,
+            "pipeline": cfg_pipeline.cfg_dict,
         }
         cfg = Config(cfg_dict)
 
@@ -173,22 +176,23 @@ class Config(object):
             if isinstance(v, dict):
                 if k in b and not isinstance(b[k], dict):
                     raise TypeError(
-                        "{}={} in child config cannot inherit from base ".
-                        format(k, v) +
-                        "because {} is a dict in the child config but is of ".
-                        format(k) +
-                        "type {} in base config.  ".format(type(b[k])))
+                        "{}={} in child config cannot inherit from base ".format(k, v)
+                        + "because {} is a dict in the child config but is of ".format(
+                            k
+                        )
+                        + "type {} in base config.  ".format(type(b[k]))
+                    )
                 b[k] = Config._merge_a_into_b(v, b.get(k, ConfigDict()))
             else:
                 if v is None:
                     continue
                 if v.isnumeric():
                     v = int(v)
-                elif v.replace('.', '').isnumeric():
+                elif v.replace(".", "").isnumeric():
                     v = float(v)
-                elif v == 'True' or v == 'true':
+                elif v == "True" or v == "true":
                     v = True
-                elif v == 'False' or v == 'false':
+                elif v == "False" or v == "false":
                     v = False
                 b[k] = v
         return b
@@ -211,15 +215,17 @@ class Config(object):
         if filename is None:
             return Config()
         if not os.path.isfile(filename):
-            raise FileNotFoundError(f'File {filename} not found')
+            raise FileNotFoundError(f"File {filename} not found")
 
-        if filename.endswith('.py'):
+        if filename.endswith(".py"):
             with tempfile.TemporaryDirectory() as temp_config_dir:
                 temp_config_file = tempfile.NamedTemporaryFile(
-                    dir=temp_config_dir, suffix='.py')
+                    dir=temp_config_dir, suffix=".py"
+                )
                 temp_config_name = os.path.basename(temp_config_file.name)
-                shutil.copyfile(filename,
-                                os.path.join(temp_config_dir, temp_config_name))
+                shutil.copyfile(
+                    filename, os.path.join(temp_config_dir, temp_config_name)
+                )
                 temp_module_name = os.path.splitext(temp_config_name)[0]
                 sys.path.insert(0, temp_config_dir)
                 mod = import_module(temp_module_name)
@@ -227,14 +233,14 @@ class Config(object):
                 cfg_dict = {
                     name: value
                     for name, value in mod.__dict__.items()
-                    if not name.startswith('__')
+                    if not name.startswith("__")
                 }
                 # delete imported module
                 del sys.modules[temp_module_name]
                 # close temp file
                 temp_config_file.close()
 
-        if filename.endswith('.yaml') or filename.endswith('.yml'):
+        if filename.endswith(".yaml") or filename.endswith(".yml"):
             with open(filename) as f:
                 cfg_dict = yaml.safe_load(f)
 

@@ -11,13 +11,13 @@ def filter_valid_label(scores, labels, num_classes, ignored_label_inds, device):
 
     ignored_bool = torch.zeros_like(valid_labels, dtype=torch.bool)
     for ign_label in ignored_label_inds:
-        ignored_bool = torch.logical_or(ignored_bool,
-                                        torch.eq(valid_labels, ign_label))
+        ignored_bool = torch.logical_or(ignored_bool, torch.eq(valid_labels, ign_label))
 
     valid_idx = torch.where(torch.logical_not(ignored_bool))[0].to(device)
 
-    valid_scores = torch.gather(valid_scores, 0,
-                                valid_idx.unsqueeze(-1).expand(-1, num_classes))
+    valid_scores = torch.gather(
+        valid_scores, 0, valid_idx.unsqueeze(-1).expand(-1, num_classes)
+    )
     valid_labels = torch.gather(valid_labels, 0, valid_idx)
 
     # Reduce label values in the range of logit shape
@@ -27,12 +27,11 @@ def filter_valid_label(scores, labels, num_classes, ignored_label_inds, device):
     for ign_label in ignored_label_inds:
         if ign_label >= 0:
 
-            reducing_list = torch.cat([
-                reducing_list[:ign_label], inserted_value,
-                reducing_list[ign_label:]
-            ], 0)
-    valid_labels = torch.gather(reducing_list.to(device), 0,
-                                valid_labels.long())
+            reducing_list = torch.cat(
+                [reducing_list[:ign_label], inserted_value, reducing_list[ign_label:]],
+                0,
+            )
+    valid_labels = torch.gather(reducing_list.to(device), 0, valid_labels.long())
 
     return valid_scores, valid_labels
 
@@ -43,10 +42,12 @@ class SemSegLoss(object):
     def __init__(self, pipeline, model, dataset, device):
         super(SemSegLoss, self).__init__()
         # weighted_CrossEntropyLoss
-        if 'class_weights' in dataset.cfg.keys() and len(
-                dataset.cfg.class_weights) != 0:
-            class_wt = DataProcessing.get_class_weights(
-                dataset.cfg.class_weights)
+        if (
+            "class_weights" in dataset.cfg.keys()
+            and dataset.cfg.class_weights is not None
+            and len(dataset.cfg.class_weights) != 0
+        ):
+            class_wt = DataProcessing.get_class_weights(dataset.cfg.class_weights)
             weights = torch.tensor(class_wt, dtype=torch.float, device=device)
             self.weighted_CrossEntropyLoss = nn.CrossEntropyLoss(weight=weights)
         else:
