@@ -1,0 +1,71 @@
+dataset:
+  name: Toronto3D
+  cache_dir: ./logs/cache
+  dataset_path: data/digitwin/Toronto3D
+  class_weights: [41697357, 1745448, 6572572, 19136493, 674897, 897825, 4634634, 374721]
+  ignored_label_inds:
+  - 0
+  num_classes: 8
+  num_points: 65536
+  test_files:
+  - L002.ply
+  test_result_folder: ./test
+  train_files:
+  - L001.ply
+  - L003.ply
+  - L004.ply
+  use_cache: true
+  val_files:
+  - L002.ply
+  steps_per_epoch_train: 100
+  steps_per_epoch_valid: 10
+model:
+  name: PointTransformer
+  batcher: ConcatBatcher
+  ckpt_path: # path/to/your/checkpoint
+  in_channels: 6
+  blocks: [2, 3, 4, 6, 3]
+  num_classes: 8
+  voxel_size: 0.04
+  max_voxels: 50000
+  ignored_label_inds: [0]
+  augment:
+    rotate:
+      method: vertical
+    scale:
+      min_s: 0.95
+      max_s: 1.05
+    noise:
+      noise_std: 0.005
+    ChromaticAutoContrast:
+      randomize_blend_factor: True
+      blend_factor: 0.2
+    ChromaticTranslation:
+      trans_range_ratio: 0.05
+    ChromaticJitter:
+      std: 0.01
+    HueSaturationTranslation:
+      hue_max: 0.5
+      saturation_max: 0.2
+pipeline:
+  name: SemanticSegmentation
+  optimizer:
+    lr: 0.02
+    momentum: 0.9
+    weight_decay: 0.0001
+  batch_size: 3
+  learning_rate: 0.01
+  main_log_dir: ./logs
+  max_epoch: 512
+  save_ckpt_freq: 5
+  scheduler_gamma: 0.99
+  test_batch_size: 1
+  train_sum_dir: train_log
+  val_batch_size: 3
+  num_workers: 0
+  pin_memory: false
+  summary:
+    record_for: []
+    max_pts:
+    use_reference: false
+    max_outputs: 1
