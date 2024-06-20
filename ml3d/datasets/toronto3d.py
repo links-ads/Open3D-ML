@@ -178,15 +178,20 @@ class Toronto3D(BaseDataset):
         make_dir(path)
 
         pred = results["predict_labels"]
-        pred = np.array(pred)
+        pred = np.array(pred, dtype=[("class_pred", "u1")])
 
         for ign in cfg.ignored_label_inds:
             pred[pred >= ign] += 1
 
-        store_path = join(path, name + ".npy")
-        make_dir(Path(store_path).parent)
-        np.save(store_path, pred)
-        log.info("Saved {} in {}.".format(name, store_path))
+        plydata = PlyData.read(attr["path"])
+        prop_names = [p.name for p in plydata.elements[0].properties]
+        if "class_pred" not in prop_names:
+            a = merge_arrays([plydata.elements[0].data, pred], flatten=True)
+            v = PlyElement.describe(a, "vertex")
+            plydata = PlyData([v], text=True)
+        else:
+            plydata.elements[0].data["class_pred"] = pred
+        plydata.write(join(path, name + ".ply"))
 
 
 class Toronto3DSplit(BaseDatasetSplit):
