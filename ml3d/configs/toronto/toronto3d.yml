@@ -1,0 +1,20 @@
+name: Toronto3D
+cache_dir: ./dataset_cache
+dataset_path: data/digitwin/Toronto3D
+class_weights: [41697357, 1745448, 6572572, 19136493, 674897, 897825, 4634634, 374721]
+ignored_label_inds:
+- 0
+num_classes: 8
+num_points: 65536
+test_files:
+- L002.ply
+test_result_folder: ./test
+train_files:
+- L001.ply
+- L003.ply
+- L004.ply
+use_cache: true
+val_files:
+- L002.ply
+steps_per_epoch_train: 100
+steps_per_epoch_valid: 10
