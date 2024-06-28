@@ -73,8 +73,7 @@ class Config(object):
 
         self_as_dict = convert_to_dict(self._cfg_dict, [])
         print(self_as_dict)
-        return yaml.dump(self_as_dict, *args, **kwargs)
-        # return self_as_dict
+        return self_as_dict
 
     def convert_to_tf_names(self, name):
         """Convert keys compatible with tensorflow."""
@@ -123,6 +122,9 @@ class Config(object):
             cfg.model.ckpt_path = args.ckpt_path
         if args.experiment is not None and not hasattr(cfg.pipeline, "experiment"):
             cfg.pipeline.experiment = args.experiment
+        if args.cfg_dataset is not None:
+            ext_dataset = Config.load_from_file(args.cfg_dataset)
+            cfg = Config.update_field(cfg, ext_dataset, "dataset")
 
         extra_cfg_dict = {"model": {}, "dataset": {}, "pipeline": {}}
 
@@ -144,6 +146,15 @@ class Config(object):
         cfg_dict_model = Config._merge_a_into_b(extra_cfg_dict["model"], cfg.model)
 
         return cfg_dict_dataset, cfg_dict_pipeline, cfg_dict_model
+
+    @staticmethod
+    def update_field(cfg, extra_cfg, field):
+        cfg_dict = cfg.cfg_dict
+        extra_cfg_dict = extra_cfg.cfg_dict
+        if field not in cfg_dict:
+            raise ValueError(f"Field {field} not found in cfg")
+        cfg_dict[field] = extra_cfg_dict
+        return Config(cfg_dict)
 
     @staticmethod
     def merge_module_cfg_file(args, extra_dict):

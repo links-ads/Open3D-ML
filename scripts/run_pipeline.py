@@ -150,7 +150,7 @@ def main():
                 out_path,
                 "w",
             ) as f:
-                yaml.dump(merged_cfg, f)
+                yaml.dump(merged_cfg.dump(), f)
 
         if args.mode is not None:
             cfg_dict_model["mode"] = args.mode
