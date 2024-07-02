@@ -6,7 +6,8 @@ from os.path import join, exists, dirname, abspath
 from sklearn.neighbors import KDTree
 import logging
 import open3d as o3d
-
+from plyfile import PlyData, PlyElement
+from numpy.lib.recfunctions import merge_arrays
 from .base_dataset import BaseDataset, BaseDatasetSplit
 from ..utils import make_dir, DATASET
 
@@ -183,6 +184,10 @@ class Toronto3D(BaseDataset):
             pred[pred >= ign] += 1
 
         pred = np.array(pred, dtype=[("class_pred", "u1")])
+
+        if cfg.ignored_label_inds is not None and len(cfg.ignored_label_inds) > 0:
+            for ign in cfg.ignored_label_inds:
+                pred[pred >= ign] += 1
 
         plydata = PlyData.read(attr["path"])
         prop_names = [p.name for p in plydata.elements[0].properties]
