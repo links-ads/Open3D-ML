@@ -125,20 +125,20 @@ def main():
     if args.cfg_file is not None:
         cfg = _ml3d.utils.Config.load_from_file(args.cfg_file)
 
-        Pipeline = _ml3d.utils.get_module("pipeline", cfg.pipeline.name, framework)
-        Model = _ml3d.utils.get_module("model", cfg.model.name, framework)
-        Dataset = _ml3d.utils.get_module("dataset", cfg.dataset.name)
-
         cfg_dict_dataset, cfg_dict_pipeline, cfg_dict_model = (
             _ml3d.utils.Config.merge_cfg_file(cfg, args, extra_dict)
         )
-        merged_cfg = _ml3d.utils.Config(
+        cfg = _ml3d.utils.Config(
             {
                 "pipeline": cfg_dict_pipeline,
                 "model": cfg_dict_model,
                 "dataset": cfg_dict_dataset,
             }
         )
+
+        Pipeline = _ml3d.utils.get_module("pipeline", cfg.pipeline.name, framework)
+        Model = _ml3d.utils.get_module("model", cfg.model.name, framework)
+        Dataset = _ml3d.utils.get_module("dataset", cfg.dataset.name)
         if args.split == "train":
             out_path = (
                 Path(cfg_dict_pipeline["main_log_dir"])
@@ -150,7 +150,7 @@ def main():
                 out_path,
                 "w",
             ) as f:
-                yaml.dump(merged_cfg.dump(), f)
+                yaml.dump(cfg.dump(), f)
 
         if args.mode is not None:
             cfg_dict_model["mode"] = args.mode

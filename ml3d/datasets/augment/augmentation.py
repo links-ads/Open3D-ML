@@ -6,7 +6,7 @@ from ..utils.operations import *
 from ..utils.transforms import in_range_bev
 
 
-class Augmentation():
+class Augmentation:
     """Class consisting common augmentation methods for different pipelines."""
 
     def __init__(self, cfg, seed=None):
@@ -26,7 +26,7 @@ class Augmentation():
         """
         if not cfg:
             return data
-        dim = cfg.get('dim', [0, 1, 2])
+        dim = cfg.get("dim", [0, 1, 2])
         data[:, dim] = data[:, dim] - data.mean(0)[dim]
         return data
 
@@ -42,19 +42,19 @@ class Augmentation():
             cfg: configuration dictionary.
 
         """
-        if 'points' in cfg:
-            cfg_p = cfg['points']
-            if cfg_p.get('method', 'linear') == 'linear':
+        if "points" in cfg:
+            cfg_p = cfg["points"]
+            if cfg_p.get("method", "linear") == "linear":
                 pc -= pc.mean(0)
                 pc /= (pc.max(0) - pc.min(0)).max()
             else:
                 raise ValueError(f"Unsupported method : {cfg_p.get('method')}")
 
-        if 'feat' in cfg and feat is not None:
-            cfg_f = cfg['feat']
-            if cfg_f.get('method', 'linear') == 'linear':
-                bias = cfg_f.get('bias', 0)
-                scale = cfg_f.get('scale', 1)
+        if "feat" in cfg and feat is not None:
+            cfg_f = cfg["feat"]
+            if cfg_f.get("method", "linear") == "linear":
+                bias = np.array(cfg_f.get("bias", 0))
+                scale = np.array(cfg_f.get("scale", 1))
                 feat -= bias
                 feat /= scale
             else:
@@ -79,33 +79,32 @@ class Augmentation():
                 f"It is recommended to recenter the pointcloud before calling rotate."
             )
 
-        method = cfg.get('method', 'vertical')
+        method = cfg.get("method", "vertical")
 
-        if method == 'vertical':
+        if method == "vertical":
             # Create random rotations
             theta = self.rng.random() * 2 * np.pi
             c, s = np.cos(theta), np.sin(theta)
             R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]], dtype=np.float32)
 
-        elif method == 'all':
+        elif method == "all":
 
             # Choose two random angles for the first vector in polar coordinates
             theta = self.rng.random() * 2 * np.pi
             phi = (self.rng.random() - 0.5) * np.pi
 
             # Create the first vector in cartesian coordinates
-            u = np.array([
-                np.cos(theta) * np.cos(phi),
-                np.sin(theta) * np.cos(phi),
-                np.sin(phi)
-            ])
+            u = np.array(
+                [np.cos(theta) * np.cos(phi), np.sin(theta) * np.cos(phi), np.sin(phi)]
+            )
 
             # Choose a random rotation angle
             alpha = self.rng.random() * 2 * np.pi
 
             # Create the rotation matrix with this vector and angle
-            R = create_3D_rotations(np.reshape(u, (1, -1)),
-                                    np.reshape(alpha, (1, -1)))[0]
+            R = create_3D_rotations(np.reshape(u, (1, -1)), np.reshape(alpha, (1, -1)))[
+                0
+            ]
         else:
             raise ValueError(f"Unsupported method : {method}")
 
@@ -125,9 +124,9 @@ class Augmentation():
 
         """
         # Choose random scales for each example
-        scale_anisotropic = cfg.get('scale_anisotropic', False)
-        min_s = cfg.get('min_s', 1.)
-        max_s = cfg.get('max_s', 1.)
+        scale_anisotropic = cfg.get("scale_anisotropic", False)
+        min_s = cfg.get("min_s", 1.0)
+        max_s = cfg.get("max_s", 1.0)
 
         if scale_anisotropic:
             scale = self.rng.random(pc.shape[1]) * (max_s - min_s) + min_s
@@ -137,15 +136,17 @@ class Augmentation():
         return pc * scale
 
     def noise(self, pc, cfg):
-        noise_std = cfg.get('noise_std', 0.001)
-        noise = (self.rng.standard_normal(
-            (pc.shape[0], pc.shape[1])) * noise_std).astype(np.float32)
+        noise_std = cfg.get("noise_std", 0.001)
+        noise = (
+            self.rng.standard_normal((pc.shape[0], pc.shape[1])) * noise_std
+        ).astype(np.float32)
 
         return pc + noise
 
     def augment(self, data):
         raise NotImplementedError(
-            "Please use one of SemsegAugmentation or ObjdetAugmentation.")
+            "Please use one of SemsegAugmentation or ObjdetAugmentation."
+        )
 
 
 class SemsegAugmentation(Augmentation):
@@ -160,10 +161,17 @@ class SemsegAugmentation(Augmentation):
 
         # Raise warnings for misspelled/unimplemented methods.
         all_methods = [
-            'recenter', 'normalize', 'rotate', 'scale', 'noise',
-            'RandomDropout', 'RandomHorizontalFlip', 'ChromaticAutoContrast',
-            'ChromaticTranslation', 'ChromaticJitter',
-            'HueSaturationTranslation'
+            "recenter",
+            "normalize",
+            "rotate",
+            "scale",
+            "noise",
+            "RandomDropout",
+            "RandomHorizontalFlip",
+            "ChromaticAutoContrast",
+            "ChromaticTranslation",
+            "ChromaticJitter",
+            "HueSaturationTranslation",
         ]
         if cfg is None:
             return
@@ -183,12 +191,10 @@ class SemsegAugmentation(Augmentation):
             labels: Labels.
             cfg: configuration dict.
         """
-        dropout_ratio = cfg.get('dropout_ratio', 0.2)
+        dropout_ratio = cfg.get("dropout_ratio", 0.2)
         if self.rng.random() < dropout_ratio:
             N = len(pc)
-            inds = self.rng.choice(N,
-                                   int(N * (1 - dropout_ratio)),
-                                   replace=False)
+            inds = self.rng.choice(N, int(N * (1 - dropout_ratio)), replace=False)
             return pc[inds], feats[inds], labels[inds]
         return pc, feats, labels
 
@@ -200,7 +206,7 @@ class SemsegAugmentation(Augmentation):
             cfg: configuraiton dict.
 
         """
-        axes = cfg.get('axes', [0, 1])
+        axes = cfg.get("axes", [0, 1])
         if self.rng.random() < 0.95:
             for curr_ax in axes:
                 if self.rng.random() < 0.5:
@@ -217,23 +223,24 @@ class SemsegAugmentation(Augmentation):
             cfg: configuration dict.
 
         """
-        randomize_blend_factor = cfg.get('randomize_blend_factor', True)
-        blend_factor = cfg.get('blend_factor', 0.5)
+        randomize_blend_factor = cfg.get("randomize_blend_factor", True)
+        blend_factor = cfg.get("blend_factor", 0.5)
         if self.rng.random() < 0.2:
             lo = feats[:, :3].min(0, keepdims=True)
             hi = feats[:, :3].max(0, keepdims=True)
 
-            assert hi.max(
-            ) > 1, "Invalid color value. Color is supposed to be in [0-255] for ChromaticAutoContrast augmentation"
+            assert (
+                hi.max() > 1
+            ), "Invalid color value. Color is supposed to be in [0-255] for ChromaticAutoContrast augmentation"
 
             scale = 255 / (hi - lo)
 
             contrast_feats = (feats[:, :3] - lo) * scale
 
-            blend_factor = self.rng.random(
-            ) if randomize_blend_factor else blend_factor
-            feats[:, :3] = (
-                1 - blend_factor) * feats[:, :3] + blend_factor * contrast_feats
+            blend_factor = self.rng.random() if randomize_blend_factor else blend_factor
+            feats[:, :3] = (1 - blend_factor) * feats[
+                :, :3
+            ] + blend_factor * contrast_feats
 
         return feats
 
@@ -245,7 +252,7 @@ class SemsegAugmentation(Augmentation):
             cfg: configuration dict.
 
         """
-        trans_range_ratio = cfg.get('trans_range_ratio', 0.1)
+        trans_range_ratio = cfg.get("trans_range_ratio", 0.1)
         if self.rng.random() < 0.95:
             tr = (self.rng.random((1, 3)) - 0.5) * 255 * 2 * trans_range_ratio
             feats[:, :3] = np.clip(tr + feats[:, :3], 0, 255)
@@ -259,7 +266,7 @@ class SemsegAugmentation(Augmentation):
             cfg: configuration dict.
 
         """
-        std = cfg.get('std', 0.01)
+        std = cfg.get("std", 0.01)
         if self.rng.random() < 0.95:
             noise = self.rng.standard_normal((feats.shape[0], 3))
             noise *= std * 255
@@ -281,7 +288,7 @@ class SemsegAugmentation(Augmentation):
             HSV image
 
         """
-        rgb = rgb.astype('float')
+        rgb = rgb.astype("float")
         hsv = np.zeros_like(rgb)
         # in case an RGBA array was passed, just copy the A channel
         hsv[..., 3:] = rgb[..., 3:]
@@ -297,9 +304,9 @@ class SemsegAugmentation(Augmentation):
         rc[mask] = (maxc - r)[mask] / (maxc - minc)[mask]
         gc[mask] = (maxc - g)[mask] / (maxc - minc)[mask]
         bc[mask] = (maxc - b)[mask] / (maxc - minc)[mask]
-        hsv[..., 0] = np.select([r == maxc, g == maxc],
-                                [bc - gc, 2.0 + rc - bc],
-                                default=4.0 + gc - rc)
+        hsv[..., 0] = np.select(
+            [r == maxc, g == maxc], [bc - gc, 2.0 + rc - bc], default=4.0 + gc - rc
+        )
         hsv[..., 0] = (hsv[..., 0] / 6.0) % 1.0
 
         return hsv
@@ -323,7 +330,7 @@ class SemsegAugmentation(Augmentation):
         rgb = np.empty_like(hsv)
         rgb[..., 3:] = hsv[..., 3:]
         h, s, v = hsv[..., 0], hsv[..., 1], hsv[..., 2]
-        i = (h * 6.0).astype('uint8')
+        i = (h * 6.0).astype("uint8")
         f = (h * 6.0) - i
         p = v * (1.0 - s)
         q = v * (1.0 - s * f)
@@ -334,7 +341,7 @@ class SemsegAugmentation(Augmentation):
         rgb[..., 1] = np.select(conditions, [v, v, v, q, p, p], default=t)
         rgb[..., 2] = np.select(conditions, [v, p, t, v, v, q], default=p)
 
-        return rgb.astype('uint8')
+        return rgb.astype("uint8")
 
     @staticmethod
     def HueSaturationTranslation(feat, cfg):
@@ -345,8 +352,8 @@ class SemsegAugmentation(Augmentation):
             cfg: config dict with keys('hue_max', and 'saturation_max').
 
         """
-        hue_max = cfg.get('hue_max', 0.5)
-        saturation_max = cfg.get('saturation_max', 0.2)
+        hue_max = cfg.get("hue_max", 0.5)
+        saturation_max = cfg.get("saturation_max", 0.2)
 
         # Assume feat[:, :3] is rgb
         hsv = SemsegAugmentation._rgb_to_hsv(feat[:, :3])
@@ -366,42 +373,40 @@ class SemsegAugmentation(Augmentation):
         if seed is not None:
             self.rng = np.random.default_rng(seed)
 
-        if 'recenter' in cfg:
-            point = self.recenter(point, cfg['recenter'])
+        if "recenter" in cfg:
+            point = self.recenter(point, cfg["recenter"])
 
-        if 'normalize' in cfg:
-            point, feat = self.normalize(point, feat, cfg['normalize'])
+        if "normalize" in cfg:
+            point, feat = self.normalize(point, feat, cfg["normalize"])
 
-        if 'rotate' in cfg:
-            point = self.rotate(point, cfg['rotate'])
+        if "rotate" in cfg:
+            point = self.rotate(point, cfg["rotate"])
 
-        if 'scale' in cfg:
-            point = self.scale(point, cfg['scale'])
+        if "scale" in cfg:
+            point = self.scale(point, cfg["scale"])
 
-        if 'noise' in cfg:
-            point = self.noise(point, cfg['noise'])
+        if "noise" in cfg:
+            point = self.noise(point, cfg["noise"])
 
-        if 'RandomDropout' in cfg:
-            point, feat, labels = self.RandomDropout(point, feat, labels,
-                                                     cfg['RandomDropout'])
+        if "RandomDropout" in cfg:
+            point, feat, labels = self.RandomDropout(
+                point, feat, labels, cfg["RandomDropout"]
+            )
 
-        if 'RandomHorizontalFlip' in cfg:
-            point = self.RandomHorizontalFlip(point,
-                                              cfg['RandomHorizontalFlip'])
+        if "RandomHorizontalFlip" in cfg:
+            point = self.RandomHorizontalFlip(point, cfg["RandomHorizontalFlip"])
 
-        if 'ChromaticAutoContrast' in cfg:
-            feat = self.ChromaticAutoContrast(feat,
-                                              cfg['ChromaticAutoContrast'])
+        if "ChromaticAutoContrast" in cfg:
+            feat = self.ChromaticAutoContrast(feat, cfg["ChromaticAutoContrast"])
 
-        if 'ChromaticTranslation' in cfg:
-            feat = self.ChromaticTranslation(feat, cfg['ChromaticTranslation'])
+        if "ChromaticTranslation" in cfg:
+            feat = self.ChromaticTranslation(feat, cfg["ChromaticTranslation"])
 
-        if 'ChromaticJitter' in cfg:
-            feat = self.ChromaticJitter(feat, cfg['ChromaticJitter'])
+        if "ChromaticJitter" in cfg:
+            feat = self.ChromaticJitter(feat, cfg["ChromaticJitter"])
 
-        if 'HueSaturationTranslation' in cfg:
-            feat = self.HueSaturationTranslation(
-                feat, cfg['HueSaturationTranslation'])
+        if "HueSaturationTranslation" in cfg:
+            feat = self.HueSaturationTranslation(feat, cfg["HueSaturationTranslation"])
 
         return point, feat, labels
 
@@ -414,8 +419,14 @@ class ObjdetAugmentation(Augmentation):
 
         # Raise warnings for misspelled/unimplemented methods.
         all_methods = [
-            'recenter', 'normalize', 'rotate', 'scale', 'noise', 'PointShuffle',
-            'ObjectRangeFilter', 'ObjectSample'
+            "recenter",
+            "normalize",
+            "rotate",
+            "scale",
+            "noise",
+            "PointShuffle",
+            "ObjectRangeFilter",
+            "ObjectSample",
         ]
         for method in cfg:
             if method not in all_methods:
@@ -425,14 +436,18 @@ class ObjdetAugmentation(Augmentation):
 
     def PointShuffle(self, data):
         """Shuffle Pointcloud."""
-        self.rng.shuffle(data['point'])
+        self.rng.shuffle(data["point"])
 
         return data
 
     @staticmethod
     def in_range_bev(box_range, box):
-        return (box[0] > box_range[0]) & (box[1] > box_range[1]) & (
-            box[0] < box_range[2]) & (box[1] < box_range[3])
+        return (
+            (box[0] > box_range[0])
+            & (box[1] > box_range[1])
+            & (box[0] < box_range[2])
+            & (box[1] < box_range[3])
+        )
 
     def ObjectRangeFilter(self, data, pcd_range):
         """Filter Objects in the given range."""
@@ -440,14 +455,14 @@ class ObjdetAugmentation(Augmentation):
         bev_range = pcd_range[[0, 1, 3, 4]]
 
         filtered_boxes = []
-        for box in data['bounding_boxes']:
+        for box in data["bounding_boxes"]:
             if self.in_range_bev(bev_range, box.to_xyzwhlr()):
                 filtered_boxes.append(box)
 
         return {
-            'point': data['point'],
-            'bounding_boxes': filtered_boxes,
-            'calib': data['calib']
+            "point": data["point"],
+            "bounding_boxes": filtered_boxes,
+            "calib": data["calib"],
         }
 
     def ObjectSample(self, data, db_boxes_dict, sample_dict):
@@ -463,10 +478,10 @@ class ObjdetAugmentation(Augmentation):
 
         """
         rate = 1.0
-        points = data['point']
-        bboxes = data['bounding_boxes']
+        points = data["point"]
+        bboxes = data["bounding_boxes"]
 
-        gt_labels_3d = [box.label_class for box in data['bounding_boxes']]
+        gt_labels_3d = [box.label_class for box in data["bounding_boxes"]]
 
         sampled_num_dict = {}
 
@@ -484,22 +499,20 @@ class ObjdetAugmentation(Augmentation):
             if sampled_num < 0:
                 continue
 
-            sampled_cls = sample_class(class_name, sampled_num, bboxes,
-                                       db_boxes_dict[class_name])
+            sampled_cls = sample_class(
+                class_name, sampled_num, bboxes, db_boxes_dict[class_name]
+            )
             sampled += sampled_cls
             bboxes = bboxes + sampled_cls
 
         if len(sampled) != 0:
             sampled_points = np.concatenate(
-                [box.points_inside_box for box in sampled], axis=0)
+                [box.points_inside_box for box in sampled], axis=0
+            )
             points = remove_points_in_boxes(points, sampled)
             points = np.concatenate([sampled_points[:, :4], points], axis=0)
 
-        return {
-            'point': points,
-            'bounding_boxes': bboxes,
-            'calib': data['calib']
-        }
+        return {"point": points, "bounding_boxes": bboxes, "calib": data["calib"]}
 
     def load_gt_database(self, pickle_path, min_points_dict, sample_dict):
         """Load ground truth object database.
@@ -512,7 +525,7 @@ class ObjdetAugmentation(Augmentation):
                 Format of dict {'class_name': num_instance}
 
         """
-        db_boxes = pickle.load(open(pickle_path, 'rb'))
+        db_boxes = pickle.load(open(pickle_path, "rb"))
 
         if min_points_dict is not None:
             db_boxes = filter_by_min_points(db_boxes, min_points_dict)
@@ -552,44 +565,45 @@ class ObjdetAugmentation(Augmentation):
         if seed is not None:
             self.rng = np.random.default_rng(seed)
 
-        if 'recenter' in cfg:
-            if cfg['recenter']:
-                data['point'] = self.recenter(data['point'], cfg['recenter'])
+        if "recenter" in cfg:
+            if cfg["recenter"]:
+                data["point"] = self.recenter(data["point"], cfg["recenter"])
 
-        if 'normalize' in cfg:
-            data['point'], _ = self.normalize(data['point'], None,
-                                              cfg['normalize'])
+        if "normalize" in cfg:
+            data["point"], _ = self.normalize(data["point"], None, cfg["normalize"])
 
-        if 'rotate' in cfg:
-            data['point'] = self.rotate(data['point'], cfg['rotate'])
+        if "rotate" in cfg:
+            data["point"] = self.rotate(data["point"], cfg["rotate"])
 
-        if 'scale' in cfg:
-            data['point'] = self.scale(data['point'], cfg['scale'])
+        if "scale" in cfg:
+            data["point"] = self.scale(data["point"], cfg["scale"])
 
-        if 'noise' in cfg:
-            data['point'] = self.noise(data['point'], cfg['noise'])
+        if "noise" in cfg:
+            data["point"] = self.noise(data["point"], cfg["noise"])
 
-        if 'ObjectSample' in cfg:
-            if not hasattr(self, 'db_boxes_dict'):
-                data_path = attr['path']
+        if "ObjectSample" in cfg:
+            if not hasattr(self, "db_boxes_dict"):
+                data_path = attr["path"]
                 # remove tail of path to get root data path
                 for _ in range(3):
                     data_path = os.path.split(data_path)[0]
-                pickle_path = os.path.join(data_path, 'bboxes.pkl')
-                if 'pickle_path' not in cfg['ObjectSample']:
-                    cfg['ObjectSample']['pickle_path'] = pickle_path
-                self.load_gt_database(**cfg['ObjectSample'])
+                pickle_path = os.path.join(data_path, "bboxes.pkl")
+                if "pickle_path" not in cfg["ObjectSample"]:
+                    cfg["ObjectSample"]["pickle_path"] = pickle_path
+                self.load_gt_database(**cfg["ObjectSample"])
 
             data = self.ObjectSample(
                 data,
                 db_boxes_dict=self.db_boxes_dict,
-                sample_dict=cfg['ObjectSample']['sample_dict'])
+                sample_dict=cfg["ObjectSample"]["sample_dict"],
+            )
 
-        if cfg.get('ObjectRangeFilter', False):
+        if cfg.get("ObjectRangeFilter", False):
             data = self.ObjectRangeFilter(
-                data, cfg['ObjectRangeFilter']['point_cloud_range'])
+                data, cfg["ObjectRangeFilter"]["point_cloud_range"]
+            )
 
-        if cfg.get('PointShuffle', False):
+        if cfg.get("PointShuffle", False):
             data = self.PointShuffle(data)
 
         return data

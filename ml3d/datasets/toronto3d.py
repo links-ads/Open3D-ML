@@ -178,10 +178,11 @@ class Toronto3D(BaseDataset):
         make_dir(path)
 
         pred = results["predict_labels"]
-        pred = np.array(pred, dtype=[("class_pred", "u1")])
 
-        for ign in cfg.ignored_label_inds:
+        for ign in self.ignored_labels:
             pred[pred >= ign] += 1
+
+        pred = np.array(pred, dtype=[("class_pred", "u1")])
 
         plydata = PlyData.read(attr["path"])
         prop_names = [p.name for p in plydata.elements[0].properties]
