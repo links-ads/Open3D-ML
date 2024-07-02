@@ -4,6 +4,7 @@ __pycache__
 # Distribution / packaging
 .Python
 env/
+.venv/
 build/
 develop-eggs/
 dist/
@@ -20,9 +21,12 @@ eggs/
 *darwin.so
 *.so
 #
+jobs/
 logs/
+notebooks/
 test/
 test_kpconv/
 kernels/
 **/.fuse*
 train_log/
+pc/
