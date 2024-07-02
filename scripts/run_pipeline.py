@@ -9,6 +9,8 @@ import yaml
 import numpy as np
 import torch.distributed as dist
 from torch import multiprocessing
+from loguru import logger as log
+import torch
 
 import open3d.ml as _ml3d
 
@@ -35,7 +37,7 @@ def parse_args():
     parser.add_argument("--split", help="train or test", default="train")
     parser.add_argument("--mode", help="additional mode", default=None)
     parser.add_argument("--max_epochs", help="number of epochs", default=None)
-    parser.add_argument("--batch_size", help="batch size", default=None)
+    parser.add_argument("--batch_size", help="batch size", default=None, type=int)
     parser.add_argument("--main_log_dir", help="the dir to save logs and models")
     parser.add_argument("--seed", help="random seed", default=0, type=int)
     parser.add_argument("--nodes", help="number of nodes", default=1, type=int)
@@ -87,7 +89,7 @@ def parse_args():
 def main():
     cmd_line = " ".join(sys.argv[:])
     args, extra_dict = parse_args()
-
+    log.info(f"{torch.cuda.device_count()}")
     framework = _ml3d.utils.convert_framework_name(args.framework)
     args.device, args.device_ids = _ml3d.utils.convert_device_name(
         args.device, args.device_ids
@@ -198,7 +200,8 @@ def main():
     args.distributed = (
         framework == "torch" and args.device != "cpu" and len(args.device_ids) > 1
     )
-
+    log.info(f"Using distributed training: {str(args.distributed)}")
+    log.info(f"Using: {args.device}")
     if not args.distributed:
         dataset = Dataset(**cfg_dict_dataset)
         model = Model(**cfg_dict_model, mode=args.mode)
