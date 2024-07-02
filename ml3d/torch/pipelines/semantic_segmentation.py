@@ -268,9 +268,13 @@ class SemanticSegmentation(BasePipeline):
                         self.summary["test"] = self.get_3d_summary(
                             results, inputs["data"], 0, save_gt=False
                         )
-        log.info(
-            f"Overall Testing Accuracy : {self.metric_test.acc()[-1]}, mIoU : {self.metric_test.iou()[-1]}"
-        )
+
+        try:
+            log.info(
+                f"Overall Testing Accuracy : {self.metric_test.acc()[-1]}, mIoU : {self.metric_test.iou()[-1]}"
+            )
+        except:
+            log.info(f"Cannot estimate overall accuracy and IoU")
 
         log.info("Finished testing")
 
@@ -418,9 +422,11 @@ class SemanticSegmentation(BasePipeline):
             model.trans_point_sampler = train_sampler.get_point_sampler()
 
             for step, inputs in enumerate(tqdm(train_loader, desc="training")):
+
                 if hasattr(inputs["data"], "to"):
                     inputs["data"].to(device)
                 self.optimizer.zero_grad()
+
                 results = model(inputs["data"])
                 loss, gt_labels, predict_scores = model.get_loss(
                     Loss, results, inputs, device
