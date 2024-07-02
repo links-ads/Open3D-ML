@@ -134,19 +134,21 @@ class TurinDataset3D(Custom3D):
             self, split=split, scale=self.scale, offset=self.offset
         )
 
-    def save_test_result(self, results, attr):
+    def save_test_result(self, results, attr, save_features=False):
         """Saves the output of a model.
 
         Args:
             results: The output of a model for the datum associated with the attribute passed.
             attr: The attributes that correspond to the outputs passed in results.
         """
+        # TODO update LAS information with the predicted labels
         cfg = self.cfg
         name = attr["name"]
         path = os.path.join(cfg.test_result_folder, cfg.experiment)
         os.makedirs(path, exist_ok=True)
 
         pred = results["predict_labels"]
+
         if cfg.ignored_label_inds is not None and len(cfg.ignored_label_inds) > 0:
             for ign in cfg.ignored_label_inds:
                 pred[pred >= ign] += 1
@@ -155,6 +157,12 @@ class TurinDataset3D(Custom3D):
         assert len(las.x) == len(
             results["predict_labels"]
         ), "Prediction and points are not of the same size"
+        if save_features:
+            feat = results["predict_features"]
+            assert len(las.x) == len(
+                feat
+            ), "Features and points are not of the same size"
+            np.save(os.path.join(path, name + "." + ".npy"), feat)
 
         las.classification = pred
 

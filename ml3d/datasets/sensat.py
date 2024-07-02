@@ -8,6 +8,7 @@ from plyfile import PlyData, PlyElement
 
 from .base_dataset import BaseDataset, BaseDatasetSplit
 from ..utils import make_dir, DATASET
+import os
 
 log = logging.getLogger(__name__)
 
@@ -163,7 +164,7 @@ class SensatUrban(BaseDataset):
         else:
             return False
 
-    def save_test_result(self, results, attr):
+    def save_test_result(self, results, attr, save_features=False):
         """Saves the output of a model.
 
         Args:
@@ -172,8 +173,8 @@ class SensatUrban(BaseDataset):
         """
         cfg = self.cfg
         name = attr["name"].split(".")[0]
-        path = cfg.test_result_folder
-        make_dir(path)
+        path = os.path.join(cfg.test_result_folder, cfg.experiment)
+        os.makedirs(path, exist_ok=True)
 
         pred = results["predict_labels"]
         pred = np.array(pred, dtype=[("class_pred", "u1")])
@@ -189,6 +190,13 @@ class SensatUrban(BaseDataset):
         else:
             plydata.elements[0].data["class_pred"] = pred
         plydata.write(join(path, name + ".ply"))
+
+        if save_features:
+            feat = results["predict_features"]
+            assert len(plydata.elements[0].data) == len(
+                feat
+            ), "Features and points are not of the same size"
+            np.save(os.path.join(path, name + ".npy"), feat)
 
 
 class SensatUrbanSplit(BaseDatasetSplit):

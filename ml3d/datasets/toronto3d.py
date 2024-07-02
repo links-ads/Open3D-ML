@@ -166,7 +166,7 @@ class Toronto3D(BaseDataset):
         else:
             return False
 
-    def save_test_result(self, results, attr):
+    def save_test_result(self, results, attr, save_features=False):
         """Saves the output of a model.
 
         Args:
@@ -175,19 +175,19 @@ class Toronto3D(BaseDataset):
         """
         cfg = self.cfg
         name = attr["name"].split(".")[0]
-        path = cfg.test_result_folder
-        make_dir(path)
+        path = os.path.join(cfg.test_result_folder, cfg.experiment)
+        os.makedirs(path, exist_ok=True)
 
         pred = results["predict_labels"]
 
-        for ign in self.ignored_labels:
-            pred[pred >= ign] += 1
+        # for ign in self.ignored_labels:
+        #    pred[pred >= ign] += 1
 
         pred = np.array(pred, dtype=[("class_pred", "u1")])
 
-        if cfg.ignored_label_inds is not None and len(cfg.ignored_label_inds) > 0:
-            for ign in cfg.ignored_label_inds:
-                pred[pred >= ign] += 1
+        # if cfg.ignored_label_inds is not None and len(cfg.ignored_label_inds) > 0:
+        #    for ign in cfg.ignored_label_inds:
+        #        pred[pred >= ign] += 1
 
         plydata = PlyData.read(attr["path"])
         prop_names = [p.name for p in plydata.elements[0].properties]
@@ -198,6 +198,13 @@ class Toronto3D(BaseDataset):
         else:
             plydata.elements[0].data["class_pred"] = pred
         plydata.write(join(path, name + ".ply"))
+
+        if save_features:
+            feat = results["predict_features"]
+            assert len(plydata.elements[0].data) == len(
+                feat
+            ), "Features and points are not of the same size"
+            np.save(os.path.join(path, name + ".npy"), feat)
 
 
 class Toronto3DSplit(BaseDatasetSplit):

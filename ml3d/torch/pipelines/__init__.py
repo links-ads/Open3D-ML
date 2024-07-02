@@ -2,5 +2,6 @@
 
 from .semantic_segmentation import SemanticSegmentation
 from .object_detection import ObjectDetection
+from .feature_extraction import FeatureExtraction
 
-__all__ = ['SemanticSegmentation', 'ObjectDetection']
+__all__ = ["SemanticSegmentation", "ObjectDetection", "FeatureExtraction"]
