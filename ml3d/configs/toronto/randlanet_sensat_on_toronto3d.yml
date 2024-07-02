@@ -1,34 +1,47 @@
 dataset:
-  name: Toronto3D
-  cache_dir: ./dataset_cache
-  dataset_path: data/digitwin/Toronto3D
-  class_weights: [41697357, 1745448, 6572572, 19136493, 674897, 897825, 4634634, 374721]
-  ignored_label_inds:
-  - 0
-  num_classes: 8
-  num_points: 65536
-  test_files:
-  - L002.ply
-  test_result_folder: ./test
-  train_files:
-  - L001.ply
-  - L003.ply
-  - L004.ply
-  use_cache: false
-  val_files:
-  - L002.ply
+  name: ConcatDataset
   steps_per_epoch_train: 100
   steps_per_epoch_valid: 10
+  num_classes: 4
+  cache_dir: ./dataset_cache
+  ignored_label_inds: []
+  class_weights: [1,1,1,1]
+  datasets:
+    -
+      name: Toronto3D
+      dataset_path: data/digitwin/Toronto3D
+      num_classes: 4
+      num_points: 65536
+      class_map: #0: ground & vegetation, 1: artificial buildings , 2: water, 3: objects
+        0: 3
+        1: 1
+        2: 1
+        3: 0
+        4: 1
+        5: 1
+        6: 3
+        7: 3
+        8: 3
+      test_files:
+      - L002.ply
+      test_result_folder: ./test
+      train_files:
+      - L001.ply
+      - L003.ply
+      - L004.ply
+      use_cache: true
+      val_files:
+      - L002.ply
 model:
   name: RandLANet
   batcher: DefaultBatcher
-  ckpt_path: # path/to/your/checkpoint
+  ckpt_path: logs/train_randlanet_sensat_4class/checkpoint/ckpt_00200.pth
   num_neighbors: 16
   num_layers: 5
   num_points: 65536
-  num_classes: 8
-  ignored_label_inds: [0]
+  num_classes: 4
   sub_sampling_ratio: [4, 4, 4, 4, 2]
+  ignored_label_inds: []
   in_channels: 6
   dim_input: 6
   dim_features: 8

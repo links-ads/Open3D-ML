@@ -1,0 +1,115 @@
+dataset:
+  name: ConcatDataset
+  steps_per_epoch_train: 100
+  steps_per_epoch_valid: 10
+  num_classes: 7
+  cache_dir: ./dataset_cache
+  class_weights: [438547425, 543847609, 884138281, 76295830, 45144948, 131470199, 43503086]
+  datasets:
+    - 
+      name: SensatUrban
+      dataset_path: data/digitwin/sensatUrban/ply
+      num_classes: 7 
+      num_points: 65536
+      class_map: #0: ground, 1: vegetation, 2: buildings, 3: road, 4: cars, 5: water, 6: other
+        0: 0
+        1: 1
+        2: 2
+        3: 2
+        4: 2
+        5: 3
+        6: 6
+        7: 4
+        8: 3
+        9: 6
+        10: 5
+        11: 3
+        12: 6
+      train_files:
+      - train/birmingham_block_10.ply
+      - train/birmingham_block_11.ply
+      - train/birmingham_block_12.ply
+      - train/birmingham_block_13.ply
+      - train/birmingham_block_3.ply
+      - train/birmingham_block_4.ply
+      - train/birmingham_block_6.ply
+      - train/cambridge_block_12.ply
+      - train/cambridge_block_13.ply
+      - train/cambridge_block_14.ply
+      - train/cambridge_block_17.ply
+      - train/cambridge_block_18.ply
+      - train/cambridge_block_19.ply
+      - train/cambridge_block_2.ply
+      - train/cambridge_block_20.ply
+      - train/cambridge_block_21.ply
+      - train/cambridge_block_23.ply
+      - train/cambridge_block_25.ply
+      - train/cambridge_block_26.ply
+      - train/cambridge_block_28.ply
+      - train/cambridge_block_3.ply
+      - train/cambridge_block_32.ply
+      - train/cambridge_block_33.ply
+      #- train/cambridge_block_34.ply
+      - train/cambridge_block_4.ply
+      - train/cambridge_block_6.ply
+      - train/birmingham_block_0.ply
+      - train/birmingham_block_7.ply
+      - train/birmingham_block_9.ply
+      #- train/cambridge_block_0.ply
+      #- train/cambridge_block_1.ply
+      - train/cambridge_block_8.ply
+      - train/cambridge_block_9.ply
+      val_files:
+      - train/birmingham_block_1.ply
+      - train/birmingham_block_5.ply
+      - train/cambridge_block_10.ply
+      - train/cambridge_block_7.ply
+      test_files:
+      - test/birmingham_block_2.ply
+      - test/birmingham_block_8.ply
+      - test/cambridge_block_15.ply
+      - test/cambridge_block_22.ply
+      - test/cambridge_block_16.ply
+      - test/cambridge_block_27.ply
+      test_result_folder: ./test
+      use_cache: true
+model:
+  name: RandLANet
+  batcher: DefaultBatcher
+  ckpt_path: # path/to/your/checkpoint
+  num_neighbors: 16
+  num_layers: 5
+  num_points: 65536
+  num_classes: 7
+  ignored_label_inds: []
+  sub_sampling_ratio: [4, 4, 4, 4, 2]
+  in_channels: 6
+  dim_input: 6
+  dim_features: 8
+  dim_output: [16, 64, 128, 256, 512]
+  grid_size: 0.2
+  augment:
+    recenter:
+      dim: [0, 1, 2]
+    normalize:
+      points:
+        method: linear
+pipeline:
+  name: SemanticSegmentation
+  optimizer:
+    lr: 0.01
+  batch_size: 4
+  main_log_dir: ./experiments/weight_paper
+  max_epoch: 200
+  save_ckpt_freq: 1
+  scheduler_gamma: 0.99
+  test_batch_size: 1
+  train_sum_dir: ./experiments/weight_paper
+  num_workers: 0
+  pin_memory: false
+  val_batch_size: 2
+  summary:
+    record_for: []
+    max_pts:
+    use_reference: false
+    max_outputs: 1
