@@ -63,6 +63,8 @@ class Config(object):
         """Dump to a string."""
 
         def convert_to_dict(cfg_node, key_list):
+            if isinstance(cfg_node, list):
+                return [convert_to_dict(v, key_list) for v in cfg_node]
             if not isinstance(cfg_node, ConfigDict):
                 return cfg_node
             else:
@@ -72,7 +74,6 @@ class Config(object):
                 return cfg_dict
 
         self_as_dict = convert_to_dict(self._cfg_dict, [])
-        print(self_as_dict)
         return self_as_dict
 
     def convert_to_tf_names(self, name):
