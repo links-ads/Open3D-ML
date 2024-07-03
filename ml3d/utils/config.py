@@ -125,6 +125,7 @@ class Config(object):
         if args.cfg_dataset is not None:
             ext_dataset = Config.load_from_file(args.cfg_dataset)
             cfg = Config.update_field(cfg, ext_dataset, "dataset")
+            cfg.dataset.experiment = args.experiment
 
         extra_cfg_dict = {"model": {}, "dataset": {}, "pipeline": {}}
 

@@ -29,14 +29,14 @@ dataset:
   - train/cambridge_block_3.ply
   - train/cambridge_block_32.ply
   - train/cambridge_block_33.ply
-  - train/cambridge_block_34.ply
+  #- train/cambridge_block_34.ply
   - train/cambridge_block_4.ply
   - train/cambridge_block_6.ply
-  - train/birmingham_block_0.ply
+  #- train/birmingham_block_0.ply
   - train/birmingham_block_7.ply
   - train/birmingham_block_9.ply
   - train/cambridge_block_0.ply
-  - train/cambridge_block_1.ply
+  #- train/cambridge_block_1.ply
   - train/cambridge_block_8.ply
   - train/cambridge_block_9.ply
   val_files:
@@ -55,7 +55,6 @@ dataset:
   use_cache: true
   steps_per_epoch_train: 100
   steps_per_epoch_valid: 10
-  use_cache: true
 model:
   name: RandLANet
   batcher: DefaultBatcher

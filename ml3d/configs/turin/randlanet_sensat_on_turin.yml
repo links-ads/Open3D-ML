@@ -1,39 +1,32 @@
 dataset:
-  name: Toronto3D
+  name: TurinDataset3D
   cache_dir: ./dataset_cache
-  dataset_path: data/digitwin/Toronto3D
-  class_weights: [41697357, 1745448, 6572572, 19136493, 674897, 897825, 4634634, 374721]
-  ignored_label_inds:
-  - 0
-  num_classes: 8
+  dataset_path: data/digitwin/sansalvario_crop
+  class_weights: [438547425, 543847609, 860487257, 20606217, 3044807, 49452238, 498977, 131470199, 26669467, 37557130, 43503086, 174125, 7088841]
+  num_classes: 13
   num_points: 65536
-  test_files:
-  - L002.ply
+  test_dir: Lidar_consegna
   test_result_folder: ./test
-  train_files:
-  - L001.ply
-  - L003.ply
-  - L004.ply
-  use_cache: false
-  val_files:
-  - L002.ply
+  train_dir: Lidar_consegna
+  use_cache: true
+  val_dir: Lidar_consegna
   steps_per_epoch_train: 100
   steps_per_epoch_valid: 10
 model:
   name: RandLANet
   batcher: DefaultBatcher
-  ckpt_path: # path/to/your/checkpoint
+  ckpt_path: ./logs/train_randlanet_sensat/checkpoint/ckpt_00200.pth
   num_neighbors: 16
   num_layers: 5
   num_points: 65536
-  num_classes: 8
+  num_classes: 13
   ignored_label_inds: [0]
   sub_sampling_ratio: [4, 4, 4, 4, 2]
   in_channels: 6
   dim_input: 6
   dim_features: 8
   dim_output: [16, 64, 128, 256, 512]
-  grid_size: 0.05
+  grid_size: 0.2
   augment:
     recenter:
       dim: [0, 1, 2]
