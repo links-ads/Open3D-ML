@@ -182,7 +182,6 @@ class FeatureExtraction(BasePipeline):
         model.device = device
         model.to(device)
         model.eval()
-        self.metric_test = SemSegMetric()
 
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -221,7 +220,6 @@ class FeatureExtraction(BasePipeline):
         self.ori_test_labels = []
         self.ori_test_feats = []
 
-        record_summary = cfg.get("summary").get("record_for", [])
         log.info("Started testing")
 
         with torch.no_grad():
@@ -229,7 +227,7 @@ class FeatureExtraction(BasePipeline):
                 if hasattr(inputs["data"], "to"):
                     inputs["data"].to(device)
                 results = model(inputs["data"])
-                class_prob, feats = results[0], results[1:]
+                class_prob, feats = results[0], results[1]
                 self.update_tests(test_sampler, inputs, class_prob, feats)
 
                 if self.complete_infer:
@@ -268,7 +266,8 @@ class FeatureExtraction(BasePipeline):
             )
             self.test_feats.append(
                 np.zeros(
-                    shape=[num_points, self.model.cfg.dim_features], dtype=np.float16
+                    shape=[num_points, self.model.cfg.dim_output[0] * 2],
+                    dtype=np.float16,
                 )
             )
             self.complete_infer = False

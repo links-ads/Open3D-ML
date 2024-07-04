@@ -53,7 +53,7 @@ class RandLANet(BaseModel):
         batcher="DefaultBatcher",
         ckpt_path=None,
         augment={},
-        return_feat=False,
+        return_features=False,
         **kwargs
     ):
 
@@ -75,7 +75,7 @@ class RandLANet(BaseModel):
             **kwargs
         )
         cfg = self.cfg
-        self.return_feat = return_feat
+        self.return_features = return_features
         self.augmenter = SemsegAugmentation(cfg.augment, seed=self.rng)
 
         self.fc0 = nn.Linear(cfg.in_channels, cfg.dim_features)
@@ -308,7 +308,7 @@ class RandLANet(BaseModel):
             feat = feat_decoder_i
 
         scores = self.fc1(feat)
-        if self.return_feat:
+        if self.return_features:
             return scores.squeeze(3).transpose(1, 2), feat
         else:
             return scores.squeeze(3).transpose(1, 2)
@@ -499,8 +499,8 @@ class RandLANet(BaseModel):
         self.test_smooth = 0.95
 
         for b in range(results.size()[0]):
-
-            result = torch.reshape(results[b], (-1, self.dim_feature))
+            result = results[b].permute(1, 2, 0)
+            result = torch.reshape(result, (-1, self.dim_feature))
             result = result.cpu().data.numpy()
             inds = inputs["data"]["point_inds"][b]
 

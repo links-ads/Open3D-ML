@@ -130,6 +130,7 @@ def main():
         cfg_dict_dataset, cfg_dict_pipeline, cfg_dict_model = (
             _ml3d.utils.Config.merge_cfg_file(cfg, args, extra_dict)
         )
+        cfg_dict_dataset["experiment"] = args.experiment
         cfg = _ml3d.utils.Config(
             {
                 "pipeline": cfg_dict_pipeline,

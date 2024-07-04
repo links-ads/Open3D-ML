@@ -2,7 +2,7 @@ dataset:
   name: SensatUrban
   cache_dir: ./dataset_cache
   dataset_path: data/digitwin/sensatUrban/ply
-  class_weights: [438547425, 543847609, 860487257, 20606217, 3044807, 49452238, 498977, 131470199, 26669467, 37557130, 43503086, 174125, 7088841]
+  class_weights: [1,1,1,1,1,1,1,1,1,1,1,1,1]
   num_classes: 13
   num_points: 65536
   train_files:
@@ -58,7 +58,8 @@ dataset:
 model:
   name: RandLANet
   batcher: DefaultBatcher
-  ckpt_path: # path/to/your/checkpoint
+  ckpt_path: logs/train_randlanet_sensat/checkpoint/ckpt_00200.pth
+  return_features: true
   num_neighbors: 16
   num_layers: 5
   num_points: 65536
@@ -77,14 +78,11 @@ model:
       points:
         method: linear
 pipeline:
-  name: SemanticSegmentation
+  name: FeatureExtraction
   optimizer:
     lr: 0.01
   batch_size: 4
   main_log_dir: ./experiments/weight_paper
-  max_epoch: 200
-  save_ckpt_freq: 1
-  scheduler_gamma: 0.99
   test_batch_size: 1
   train_sum_dir: ./experiments/weight_paper
   num_workers: 0
