@@ -1,0 +1,17 @@
+name: TurinDataset3D
+cache_dir: ./dataset_cache
+dataset_path: data/digitwin/sansalvario_crop
+class_weights: [1604601037,438547425, 49452238,26669467,  43503086, 174125]
+ignored_label_inds:
+- 0
+num_classes: 6
+num_points: 65536
+train_dir: lidar_ground
+val_dir: lidar_ground
+test_dir: lidar_ground
+test_result_folder: ./test
+use_cache: true
+steps_per_epoch_train: 100
+steps_per_epoch_valid: 10
+offset: [396000, 4989500, 0]
+experiment: test_randlanet_sensat_on_turin_ground
