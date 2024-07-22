@@ -9,12 +9,12 @@ import laspy as lp
 
 from .customdataset import Custom3D
 from ..utils import DATASET, get_module
-
+from abc import ABC
 
 log = logging.getLogger(__name__)
 
 
-class TurinDataset3DSplit:
+class TurinDataset3DSplit(ABC):
     def __init__(
         self,
         dataset,
@@ -159,10 +159,20 @@ class TurinDataset3D(Custom3D):
         ), "Prediction and points are not of the same size"
         if save_features:
             feat = results["predict_features"]
+            las_dims = np.concatenate(
+                [
+                    np.expand_dims(las.x, axis=1),
+                    np.expand_dims(las.y, axis=1),
+                    np.expand_dims(las.z, axis=1),
+                    feat,
+                ],
+                axis=1,
+            )
+
             assert len(las.x) == len(
                 feat
             ), "Features and points are not of the same size"
-            np.save(os.path.join(path, name + "." + ".npy"), feat)
+            np.save(os.path.join(path, name + ".npy"), las_dims)
 
         las.classification = pred
 
