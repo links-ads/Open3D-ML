@@ -10,6 +10,7 @@ from .sensat import SensatUrban
 from .delft_sum import SUMDataset
 from .turin_dataset import TurinDataset3D
 from .concat import ConcatDataset
+from .eclair import ECLAIRDataset
 from .inference_dummy import InferenceDummySplit
 from .samplers import SemSegRandomSampler, SemSegSpatiallyRegularSampler
 from . import utils
@@ -28,9 +29,31 @@ from .matterport_objects import MatterportObjects
 from .tumfacade import TUMFacade
 
 __all__ = [
-    'SemanticKITTI', 'S3DIS', 'Toronto3D', 'ParisLille3D', 'Semantic3D', 'SensatUrban', 'ConcatDataset', 'SUMDataset',
-    'TurinDataset3D','Custom3D', 'utils', 'augment', 'samplers', 'KITTI', 'Waymo', 'NuScenes',
-    'Lyft', 'ShapeNet', 'SemSegRandomSampler', 'InferenceDummySplit',
-    'SemSegSpatiallyRegularSampler', 'Argoverse', 'Scannet', 'SunRGBD',
-    'MatterportObjects', 'TUMFacade'
+    "SemanticKITTI",
+    "S3DIS",
+    "Toronto3D",
+    "ParisLille3D",
+    "Semantic3D",
+    "SensatUrban",
+    "ConcatDataset",
+    "SUMDataset",
+    "TurinDataset3D",
+    "ECLAIRDataset",
+    "Custom3D",
+    "utils",
+    "augment",
+    "samplers",
+    "KITTI",
+    "Waymo",
+    "NuScenes",
+    "Lyft",
+    "ShapeNet",
+    "SemSegRandomSampler",
+    "InferenceDummySplit",
+    "SemSegSpatiallyRegularSampler",
+    "Argoverse",
+    "Scannet",
+    "SunRGBD",
+    "MatterportObjects",
+    "TUMFacade",
 ]
