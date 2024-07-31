@@ -2,7 +2,7 @@ dataset:
   name: ConcatDataset
   steps_per_epoch_train: 100
   steps_per_epoch_valid: 10
-  test_result_folder: ./test
+  test_result_folder: ./logs
   cache_dir: ./dataset_cache/sensat5
   class_weights: [579547289, 550856858, 904143863, 340505589, 7088841]
   num_classes: 5
@@ -24,7 +24,7 @@ dataset:
         7: 0
         8: 3
         9: 3
-        10: 3
+        10: 0
         11: 3
         12: 4
       train_files:
@@ -84,28 +84,36 @@ model:
   dim_input: 6
   dim_features: 8
   dim_output: [16, 64, 128, 256, 512]
-  grid_size: 0.05
+  grid_size: 0.2
   augment:
     recenter:
       dim: [0, 1, 2]
     normalize:
       points:
         method: linear
+    rotate:
+      method: "vertical"
+    noise:
+      noise_std: 0.001
+    ChromaticAutoContrast:
+      randomize_blend_factor: true
+    HueSaturationTranslation:
+      hue_max: 0.5
+      saturation_max: 0.2
 pipeline:
   name: SemanticSegmentation
   optimizer:
     lr: 0.001
   batch_size: 4
-  main_log_dir: ./experiments/weight_paper
-  max_epoch: 200
-  save_ckpt_freq: 1
+  main_log_dir: ./test
+  max_epoch: 400
+  save_ckpt_freq: 20
   scheduler_gamma: 0.99
   test_batch_size: 1
-  train_sum_dir: ./experiments/weight_paper
+  train_sum_dir: ./test
   num_workers: 0
   pin_memory: false
   val_batch_size: 2
-  experiment: test_randlanet_sensat_on_turin_5cls_fix_005
   summary:
     record_for: []
     max_pts:

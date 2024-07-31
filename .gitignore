@@ -30,3 +30,4 @@ kernels/
 **/.fuse*
 train_log/
 pc/
+experiments/
