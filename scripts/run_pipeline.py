@@ -35,6 +35,7 @@ def parse_args():
         "--device_ids", nargs="+", help="cuda device list", default=["0"]
     )
     parser.add_argument("--split", help="train or test", default="train")
+    parser.add_argument("--tent", help="use tent", default=False)
     parser.add_argument("--mode", help="additional mode", default=None)
     parser.add_argument("--max_epochs", help="number of epochs", default=None)
     parser.add_argument("--batch_size", help="batch size", default=None, type=int)
@@ -211,7 +212,10 @@ def main():
         pipeline.cfg_tb = cfg_tb
 
         if args.split == "test":
-            pipeline.run_test()
+            if args.tent:
+                pipeline.run_tent()
+            else:
+                pipeline.run_test()
         else:
             pipeline.run_train()
 

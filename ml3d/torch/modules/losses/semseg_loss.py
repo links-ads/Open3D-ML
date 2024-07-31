@@ -51,3 +51,13 @@ class SemSegLoss(object):
             self.weighted_CrossEntropyLoss = nn.CrossEntropyLoss(weight=weights)
         else:
             self.weighted_CrossEntropyLoss = nn.CrossEntropyLoss()
+
+
+class SoftmaxEntropyLoss(nn.Module):
+
+    def __init__(self):
+        super(SoftmaxEntropyLoss, self).__init__()
+
+    def forward(self, y_pred):
+        """Entropy of softmax distribution from logits."""
+        return -(y_pred.softmax(2) * y_pred.log_softmax(2)).sum(2)
