@@ -14,10 +14,11 @@ from open3d.visualization.tensorboard_plugin import summary
 from .base_pipeline import BasePipeline
 from ..dataloaders import get_sampler, TorchDataloader, DefaultBatcher, ConcatBatcher
 from ..utils import latest_torch_ckpt
-from ..modules.losses import SemSegLoss, filter_valid_label
+from ..modules.losses import SemSegLoss, filter_valid_label, SoftmaxEntropyLoss
 from ..modules.metrics import SemSegMetric
 from ...utils import make_dir, PIPELINE, get_runid, code2md
 from ...datasets import InferenceDummySplit
+from torch import nn
 
 log = logging.getLogger(__name__)
 
@@ -403,7 +404,17 @@ class SemanticSegmentation(BasePipeline):
         # self.train_dir = join(self.cfg.logs_dir, "train")
 
         is_resume = model.cfg.get("is_resume", True)
-        self.load_ckpt(model.cfg.ckpt_path, is_resume=is_resume)
+        from_binary = model.cfg.get("from_binary", False)
+        freeze_encoder = model.cfg.get("freeze_encoder", False)
+        log.info(
+            f"Loading from binary: {from_binary} - Freeze encoder: {freeze_encoder}"
+        )
+        self.load_ckpt(
+            model.cfg.ckpt_path,
+            is_resume=is_resume,
+            from_binary=from_binary,
+            freeze_encoder=freeze_encoder,
+        )
 
         writer = SummaryWriter(self.cfg.logs_dir)
         self.save_config(writer)
@@ -481,6 +492,152 @@ class SemanticSegmentation(BasePipeline):
                         )
 
             self.save_logs(writer, epoch)
+
+            if epoch % cfg.save_ckpt_freq == 0 or epoch == cfg.max_epoch:
+                self.save_ckpt(epoch)
+
+    def run_tent(self):
+        model = self.model
+        device = self.device
+        model.device = device
+        dataset = self.dataset
+        cfg = self.cfg
+        model.to(device)
+        log.info("Running tent pipeline")
+        log.info("DEVICE : {}".format(device))
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        log.info(f"{model}")
+        log_file_path = join(cfg.logs_dir, "log_tent_" + timestamp + ".txt")
+        log.info("Logging in file : {}".format(log_file_path))
+        log.addHandler(logging.FileHandler(log_file_path))
+
+        Loss = SoftmaxEntropyLoss()
+        self.batcher = self.get_batcher(device)
+        tent_dataset = dataset.get_split("train")  # should be same as test
+        tent_sampler = tent_dataset.sampler
+        tent_split = TorchDataloader(
+            dataset=tent_dataset,
+            preprocess=model.preprocess,
+            transform=model.transform,
+            sampler=tent_sampler,
+            use_cache=dataset.cfg.use_cache,
+            steps_per_epoch=dataset.cfg.get("steps_per_epoch_train", None),
+        )
+
+        tent_loader = DataLoader(
+            tent_split,
+            batch_size=cfg.batch_size,
+            sampler=get_sampler(tent_sampler),
+            num_workers=cfg.get("num_workers", 2),
+            pin_memory=cfg.get("pin_memory", True),
+            collate_fn=self.batcher.collate_fn,
+            worker_init_fn=lambda x: np.random.seed(
+                x + np.uint32(torch.utils.data.get_worker_info().seed)
+            ),
+        )
+
+        test_dataset = dataset.get_split("test")
+        test_sampler = test_dataset.sampler
+        test_split = TorchDataloader(
+            dataset=test_dataset,
+            preprocess=model.preprocess,
+            transform=model.transform,
+            sampler=test_sampler,
+            use_cache=dataset.cfg.use_cache,
+        )
+        test_loader = DataLoader(
+            test_split,
+            batch_size=cfg.test_batch_size,
+            sampler=get_sampler(test_sampler),
+            collate_fn=self.batcher.collate_fn,
+        )
+        self.load_ckpt(model.cfg.ckpt_path)
+
+        model.train()
+        # disable grad, to (re-)enable only what tent updates
+        model.requires_grad_(False)
+        # configure norm for tent updates: enable grad + force batch statisics
+        for m in model.modules():
+            if isinstance(m, nn.BatchNorm2d):
+                log.info("Removing grad")
+                m.requires_grad_(True)
+                # force use of batch stats in train and eval modes
+                m.track_running_stats = False
+                m.running_mean = None
+                m.running_var = None
+
+        params = []
+        names = []
+        for nm, m in model.named_modules():
+            if isinstance(m, nn.BatchNorm2d):
+                for np, p in m.named_parameters():
+                    if np in ["weight", "bias"]:  # weight is scale, bias is shift
+                        params.append(p)
+                        names.append(f"{nm}.{np}")
+
+        self.optimizer, self.scheduler = model.get_optimizer(cfg, new_params=params)
+
+        dataset_name = dataset.name if dataset is not None else ""
+        # self.train_dir = join(self.cfg.logs_dir, "train")
+        # loading pretrained checkpoint
+
+        writer = SummaryWriter(self.cfg.logs_dir)
+        self.save_config(writer)
+        log.info("Writing summary in {}.".format(self.cfg.logs_dir))
+        record_summary = cfg.get("summary").get("record_for", [])
+
+        log.info("Started training")
+
+        for epoch in range(0, cfg.max_epoch + 1):
+
+            log.info(f"=== EPOCH {epoch:d}/{cfg.max_epoch:d} ===")
+            model.train()
+            self.losses = []
+            model.trans_point_sampler = tent_sampler.get_point_sampler()
+            for step, inputs in enumerate(tqdm(tent_loader, desc="training")):
+
+                if hasattr(inputs["data"], "to"):
+                    inputs["data"].to(device)
+                self.optimizer.zero_grad()
+
+                results = model(inputs["data"])
+                loss = Loss(results).mean()
+                log.info(f"Loss: {loss}")
+                loss.backward()
+                self.optimizer.step()
+                self.losses.append(loss.cpu().item())
+                # Save only for the first pcd in batch
+                if "test" in record_summary and "test" not in self.summary:
+                    self.summary["train"] = self.get_3d_summary(
+                        results, inputs["data"], epoch
+                    )
+
+            # self.scheduler.step()
+
+            # --------------------- validation
+            model.eval()
+            self.dataset_split = test_dataset
+            model.trans_point_sampler = test_sampler.get_point_sampler()
+            self.curr_cloud_id = -1
+            self.test_probs = []
+            self.ori_test_probs = []
+            self.ori_test_labels = []
+
+            with torch.no_grad():
+                for unused_step, inputs in enumerate(tqdm(test_loader, desc="testing")):
+                    if hasattr(inputs["data"], "to"):
+                        inputs["data"].to(device)
+
+                    results = model(inputs["data"])
+                    self.update_tests(test_sampler, inputs, results)
+                    if self.complete_infer:
+                        inference_result = {
+                            "predict_labels": self.ori_test_labels.pop(),
+                            "predict_scores": self.ori_test_probs.pop(),
+                        }
+                        attr = self.dataset_split.get_attr(test_sampler.cloud_id)
+                        attr["name"] = attr["name"] + "_epoch_{}".format(epoch)
+                        dataset.save_test_result(inference_result, attr)
 
             if epoch % cfg.save_ckpt_freq == 0 or epoch == cfg.max_epoch:
                 self.save_ckpt(epoch)
@@ -687,7 +844,9 @@ class SemanticSegmentation(BasePipeline):
                     label_to_names=label_to_names,
                 )
 
-    def load_ckpt(self, ckpt_path=None, is_resume=True):
+    def load_ckpt(
+        self, ckpt_path=None, is_resume=True, from_binary=False, freeze_encoder=False
+    ):
         """Load a checkpoint. You must pass the checkpoint and indicate if you
         want to resume.
         """
@@ -707,13 +866,25 @@ class SemanticSegmentation(BasePipeline):
 
         log.info(f"Loading checkpoint {ckpt_path}")
         ckpt = torch.load(ckpt_path, map_location=self.device)
-        self.model.load_state_dict(ckpt["model_state_dict"])
-        if "optimizer_state_dict" in ckpt and hasattr(self, "optimizer"):
-            log.info(f"Loading checkpoint optimizer_state_dict")
-            self.optimizer.load_state_dict(ckpt["optimizer_state_dict"])
-        if "scheduler_state_dict" in ckpt and hasattr(self, "scheduler"):
-            log.info(f"Loading checkpoint scheduler_state_dict")
-            self.scheduler.load_state_dict(ckpt["scheduler_state_dict"])
+        if from_binary:
+            ckpt["model_state_dict"].pop("fc1.3.conv.bias")
+            ckpt["model_state_dict"].pop("fc1.3.conv.weight")
+
+        self.model.load_state_dict(ckpt["model_state_dict"], strict=False)
+
+        if freeze_encoder:
+            for name, params in self.model.named_parameters():
+                if name.startswith(("decoder", "fc1")):
+                    params.requires_grad = True
+                else:
+                    params.requires_grad = False
+        if not from_binary:
+            if "optimizer_state_dict" in ckpt and hasattr(self, "optimizer"):
+                log.info(f"Loading checkpoint optimizer_state_dict")
+                self.optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+            if "scheduler_state_dict" in ckpt and hasattr(self, "scheduler"):
+                log.info(f"Loading checkpoint scheduler_state_dict")
+                self.scheduler.load_state_dict(ckpt["scheduler_state_dict"])
 
     def save_ckpt(self, epoch):
         """Save a checkpoint at the passed epoch."""
