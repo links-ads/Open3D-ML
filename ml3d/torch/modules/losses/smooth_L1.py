@@ -34,8 +34,9 @@ class SmoothL1Loss(nn.Module):
         """
         assert pred.size() == target.size() and target.numel() > 0
         diff = torch.abs(pred - target)
-        loss = torch.where(diff < self.beta, 0.5 * diff * diff / self.beta,
-                           diff - 0.5 * self.beta)
+        loss = torch.where(
+            diff < self.beta, 0.5 * diff * diff / self.beta, diff - 0.5 * self.beta
+        )
         if weight is not None:
             loss = loss * weight
 

@@ -54,7 +54,7 @@ class RandLANet(BaseModel):
         ckpt_path=None,
         augment={},
         return_features=False,
-        **kwargs
+        **kwargs,
     ):
 
         super().__init__(
@@ -72,7 +72,7 @@ class RandLANet(BaseModel):
             batcher=batcher,
             ckpt_path=ckpt_path,
             augment=augment,
-            **kwargs
+            **kwargs,
         )
         cfg = self.cfg
         self.return_features = return_features
@@ -364,8 +364,15 @@ class RandLANet(BaseModel):
         interpolatedim_features = interpolatedim_features.unsqueeze(3)
         return interpolatedim_features
 
-    def get_optimizer(self, cfg_pipeline):
-        optimizer = torch.optim.Adam(self.parameters(), **cfg_pipeline.optimizer)
+    def get_optimizer(
+        self,
+        cfg_pipeline,
+        new_params=None,
+    ):
+        if new_params is None:
+            optimizer = torch.optim.Adam(self.parameters(), **cfg_pipeline.optimizer)
+        else:
+            optimizer = torch.optim.Adam(new_params, **cfg_pipeline.optimizer)
         scheduler = torch.optim.lr_scheduler.ExponentialLR(
             optimizer, cfg_pipeline.scheduler_gamma
         )
