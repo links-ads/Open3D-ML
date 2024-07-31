@@ -6,6 +6,7 @@ import logging
 
 import numpy as np
 import laspy as lp
+import scipy
 
 from .customdataset import Custom3D
 from ..utils import DATASET, get_module
@@ -76,7 +77,7 @@ class TurinDataset3DSplit(ABC):
         pc_path = Path(self.path_list[idx])
         name = pc_path.stem
 
-        attr = {"name": name, "path": str(pc_path), "split": self.split}
+        attr = {"idx": idx, "name": name, "path": str(pc_path), "split": self.split}
 
         return attr
 
@@ -94,7 +95,8 @@ class TurinDataset3D(Custom3D):
         file_format="las",
         scale=np.array([1.0, 1.0, 1.0]),
         offset=np.array([0.0, 0.0, 0.0]),
-        **kwargs
+        times=1,
+        **kwargs,
     ):
 
         super().__init__(
@@ -105,7 +107,7 @@ class TurinDataset3D(Custom3D):
             num_points=num_points,
             ignored_label_inds=ignored_label_inds,
             test_result_folder=test_result_folder,
-            **kwargs
+            **kwargs,
         )
         self.file_format = file_format
 
@@ -114,7 +116,7 @@ class TurinDataset3D(Custom3D):
 
         self.train_files = [
             f for f in glob.glob(self.train_dir + "/*." + self.file_format)
-        ]
+        ] * times
         self.val_files = [f for f in glob.glob(self.val_dir + "/*." + self.file_format)]
         self.test_files = [
             f for f in glob.glob(self.test_dir + "/*." + self.file_format)
@@ -134,7 +136,9 @@ class TurinDataset3D(Custom3D):
             self, split=split, scale=self.scale, offset=self.offset
         )
 
-    def save_test_result(self, results, attr, save_features=False):
+    def save_test_result(
+        self, results, attr, save_features=False, save_confidence=False
+    ):
         """Saves the output of a model.
 
         Args:
@@ -175,6 +179,19 @@ class TurinDataset3D(Custom3D):
             np.save(os.path.join(path, name + ".npy"), las_dims)
 
         las.classification = pred
+        if save_confidence:
+            conf = results["predict_scores"]
+            log.info(f"Predicted scores: {conf}")
+            conf = np.max(conf, axis=-1)
+            log.info(f"Confidence: {conf}")
+            las.add_extra_dim(
+                lp.ExtraBytesParams(
+                    name="confidence",
+                    type=np.float32,
+                    description="Prediction confidence",
+                )
+            )
+            las.confidence = conf
 
         store_path = os.path.join(path, name + "." + self.file_format)
         las.write(store_path)
