@@ -1,7 +1,7 @@
 name: ECLAIRDataset
 cache_dir: ./dataset_cache
 dataset_path: data/digitwin/ECLAIR
-class_weights: []
+class_weights: [107865963, 111816742, 376632, 3958, 468333, 54376, 18062, 43437, 49100, 25930]
 ignored_label_inds: [0,1]
 num_classes: 10
 num_points: 65536

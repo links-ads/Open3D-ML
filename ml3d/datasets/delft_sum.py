@@ -180,7 +180,7 @@ class SUMDataset(BaseDataset):
         make_dir(path)
 
         pred = results["predict_labels"]
-        pred = np.array(pred)
+        pred = np.array(pred).astype(np.int32)
 
         for ign in cfg.ignored_label_inds:
             pred[pred >= ign] += 1

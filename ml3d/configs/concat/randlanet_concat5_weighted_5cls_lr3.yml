@@ -3,8 +3,8 @@ dataset:
   steps_per_epoch_train: 100
   steps_per_epoch_valid: 10
   test_result_folder: ./test
-  cache_dir: ./dataset_cache/concat3_5_map
-  class_weights: [1449387707, 900549788, 2218124110, 171142258, 358830460]
+  cache_dir: ./dataset_cache/concat5_5_map
+  class_weights: [1666939570, 1168629706, 2226882629, 172186133, 361131880]
   num_classes: 5
   num_points: 65536
   # Taxonomy is Ground, Vegetation, Building, Street Element, Water
@@ -105,6 +105,44 @@ dataset:
       - L004.ply
       val_files:
       - L002.ply
+    -
+      name: ECLAIRDataset
+      dataset_path: data/digitwin/ECLAIR
+      train_files: train.txt
+      val_files: val.txt
+      test_files: test.txt
+      class_map:
+        0: 0
+        1: 0
+        2: 1
+        3: 2
+        4: 3
+        5: 0
+        6: 4
+        7: 4
+        8: 4
+        9: 4
+        10: 4
+        11: 4
+    -
+      name: FRACTALDataset
+      dataset_path: data/digitwin/FRACTAL/extracted_data
+      train_dir: train
+      val_dir: val
+      test_dir: test
+      class_map:
+        1 : 0
+        2 : 1
+        3 : 2
+        4 : 2
+        5 : 2
+        6 : 3
+        9 : 5
+        17 : 4
+        64 : 4
+        65 : 0
+        66 : 0
+
 model:
   name: RandLANet
   batcher: DefaultBatcher

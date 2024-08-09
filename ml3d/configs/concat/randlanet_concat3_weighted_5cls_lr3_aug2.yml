@@ -126,6 +126,22 @@ model:
     normalize:
       points:
         method: linear
+    rotate:
+      method: vertical
+    noise:
+      noise_std: 0.001
+    ChromaticAutoContrast:
+      randomize_blend_factor: true
+      blend_factor: 0.5
+    RandomHorizontalFlip:
+      axes: [0, 1]
+    ChromaticJitter:
+      std: 0.01
+    HueSaturationTranslation:
+      hue_max: 0.5
+      saturation_max: 0.2
+
+
 pipeline:
   name: SemanticSegmentation
   optimizer:

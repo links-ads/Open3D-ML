@@ -1,0 +1,14 @@
+name: FRACTALDataset
+cache_dir: ./dataset_cache
+dataset_path: data/digitwin/FRACTAL/extracted_data
+class_weights: [109685900, 12242238, 12197006, 131823932, 8381887, 2301420, 294976, 89661]
+ignored_label_inds: [1, 65, 66]
+num_classes: 8
+num_points: 65536
+train_dir: train
+val_dir: val
+test_dir: test
+test_result_folder: ./test
+use_cache: true
+steps_per_epoch_train: 100
+steps_per_epoch_valid: 10
