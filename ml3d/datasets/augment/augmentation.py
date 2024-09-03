@@ -225,7 +225,8 @@ class SemsegAugmentation(Augmentation):
         """
         randomize_blend_factor = cfg.get("randomize_blend_factor", True)
         blend_factor = cfg.get("blend_factor", 0.5)
-        if self.rng.random() < 0.2:
+        prob = cfg.get("prob", 0.2)
+        if self.rng.random() < prob:
             lo = feats[:, :3].min(0, keepdims=True)
             hi = feats[:, :3].max(0, keepdims=True)
 
