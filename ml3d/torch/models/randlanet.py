@@ -12,6 +12,9 @@ from ...datasets.augment import SemsegAugmentation
 from ..modules.losses import filter_valid_label
 from ...datasets.utils import DataProcessing
 from ...utils import MODEL
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class RandLANet(BaseModel):
@@ -180,24 +183,26 @@ class RandLANet(BaseModel):
 
         cfg = self.cfg
         inputs = dict()
-
-        pc = data["point"].copy()
-        label = data["label"].copy()
-        feat = data["feat"].copy() if data["feat"] is not None else None
+        pc = data["point"]  # full pointcloud (N,3)
+        label = data["label"]
+        feat = data["feat"] if data["feat"] is not None else None
         tree = data["search_tree"]
 
-        pc, selected_idxs, center_point = self.trans_point_sampler(
+        selected_idxs, center_point = self.trans_point_sampler(
             pc=pc,
             feat=feat,
             label=label,
             search_tree=tree,
             num_points=self.cfg.num_points,
-        )
-
-        label = label[selected_idxs]
-
+            sampler=self.cfg.get("sampler", None),
+        )  # Points are sampled from the whole pointcloud (n_points,3)
+        pc_sub = pc[selected_idxs]
+        pc = pc_sub.copy()
+        label_sub = label[selected_idxs]
+        label = label_sub.copy()
         if feat is not None:
-            feat = feat[selected_idxs]
+            feat_sub = feat[selected_idxs]
+            feat = feat_sub.copy()
 
         augment_cfg = self.cfg.get("augment", {}).copy()
         val_augment_cfg = {}
@@ -519,6 +524,289 @@ class RandLANet(BaseModel):
 
 
 MODEL._register_module(RandLANet, "torch")
+
+
+class RandLANetMixer(RandLANet):
+    def __init__(self, **kwargs):
+        super(RandLANetMixer, self).__init__(**kwargs)
+        self.return_features = False
+        seed_target = 21
+        self.rng_target = np.random.default_rng(seed_target)
+        self.ema = kwargs.get("ema", 0.99)
+        log.info(f"EMA: {self.ema}")
+        # Initialize the projector
+
+    def update_ema(self, student_model):
+        # FIXME: set EMA value
+        for teacher_param, student_param in zip(
+            self.parameters(), student_model.parameters()
+        ):
+            teacher_param.data = (
+                self.ema * teacher_param.data + (1 - self.ema) * student_param.data
+            )
+
+    def get_loss(self, Loss, results, inputs, device):
+        """Calculate the loss on output of the model.
+
+        Args:
+            Loss: Object of type `SemSegLoss`.
+            results: Output of the model (B, N, C).
+            inputs: Input of the model.
+            device: device(cpu or cuda).
+
+        Returns:
+            Returns loss, labels and scores.
+
+        """
+        cfg = self.cfg
+        labels = inputs["labels"]
+
+        scores, labels = filter_valid_label(
+            results, labels, cfg.num_classes, cfg.ignored_label_inds, device
+        )
+
+        loss = Loss.weighted_CrossEntropyLoss(scores, labels)
+
+        return loss, labels, scores
+
+    def preprocess(self, data, attr):
+        data_source = super(RandLANetMixer, self).preprocess(
+            data["source"], attr["source"]
+        )
+
+        data_target = super(RandLANetMixer, self).preprocess(
+            data["target"], attr["target"]
+        )
+
+        return {"source": data_source, "target": data_target}
+
+    def transform(self, data, attr, min_possibility_idx=None):
+        # If num_workers > 0, use new RNG with unique seed for each thread.
+        # Else, use default RNG.
+        if torch.utils.data.get_worker_info():
+            seedseq = np.random.SeedSequence(
+                torch.utils.data.get_worker_info().seed
+                + torch.utils.data.get_worker_info().id
+            )
+            rng = np.random.default_rng(seedseq.spawn(1)[0])
+            rng2 = np.random.default_rng(seedseq.spawn(1)[0])
+        else:
+            rng = self.rng
+            rng2 = self.rng_target
+
+        cfg = self.cfg
+        inputs = dict()
+        inputs_target = dict()
+
+        pointcloud_source = data["source"]["point"]  # full pointcloud (N,3)
+        label_source = data["source"]["label"]
+        features_source = (
+            data["source"]["feat"] if data["source"]["feat"] is not None else None
+        )
+        tree_source = data["source"]["search_tree"]
+
+        pointcloud_target = data["target"]["point"]  # full pointcloud (N,3)
+        label_target = data["target"]["label"]
+        features_target = (
+            data["target"]["feat"] if data["target"]["feat"] is not None else None
+        )
+        tree_target = data["target"]["search_tree"]
+
+        selected_idxs_source, center_point_source = self.trans_point_sampler(
+            pc=pointcloud_source,
+            feat=features_source,
+            label=label_source,
+            search_tree=tree_source,
+            num_points=self.cfg.num_points,
+        )  # Points are sampled from the whole pointcloud (n_points,3)
+
+        pointcloud_source_sub = pointcloud_source[selected_idxs_source]
+        pointcloud_source = pointcloud_source_sub.copy()
+        label_source_sub = label_source[selected_idxs_source]
+        label_source = label_source_sub.copy()
+
+        if features_source is not None:
+            features_source_sub = features_source[selected_idxs_source]
+            features_source = features_source_sub.copy()
+
+        selected_idxs_target, center_point_target = self.trans_point_sampler(
+            pc=pointcloud_target,
+            feat=features_target,
+            label=label_target,
+            search_tree=tree_target,
+            num_points=self.cfg.num_points,
+        )  # Points are sampled from the whole pointcloud (n_points,3)
+        pointcloud_target_sub = pointcloud_target[selected_idxs_target]
+        pointcloud_target = pointcloud_target_sub.copy()
+        label_target_sub = label_target[selected_idxs_target]
+        label_target = label_target_sub.copy()
+
+        if features_target is not None:
+            features_target_sub = features_target[selected_idxs_target]
+            features_target = features_target_sub.copy()
+
+        augment_cfg = self.cfg.get("augment", {}).copy()
+        recenter_augment_cfg = {}
+        norm_augment_cfg = {}
+        if "recenter" in augment_cfg:
+            recenter_augment_cfg["recenter"] = augment_cfg.pop("recenter")
+        if "normalize" in augment_cfg:
+            norm_augment_cfg["normalize"] = augment_cfg.pop("normalize")
+        # FIXME: its gonna break in test iter
+        self.augmenter.augment(
+            pointcloud_source,
+            features_source,
+            label_source,
+            recenter_augment_cfg,
+            seed=rng,
+        )
+        self.augmenter.augment(
+            pointcloud_target,
+            features_target,
+            label_target,
+            recenter_augment_cfg,
+            seed=rng2,
+        )
+        if attr["source"]["split"] in [
+            "training",
+            "train",
+        ]:
+            pointcloud_source, features_source, label_source = self.augmenter.augment(
+                pointcloud_source, features_source, label_source, augment_cfg, seed=rng
+            )
+
+            pointcloud_target, features_target, label_target = self.augmenter.augment(
+                pointcloud_target, features_target, label_target, augment_cfg, seed=rng2
+            )
+
+        point_idx_source = np.arange(pointcloud_source.shape[0]).astype(np.float32)
+        point_idx_target = np.arange(pointcloud_target.shape[0]).astype(np.float32)
+        source_bin = np.zeros(pointcloud_source.shape[0]).astype(np.float32)
+        target_bin = np.ones(pointcloud_target.shape[0]).astype(np.float32)
+
+        features_source = np.concatenate(
+            [features_source, point_idx_source[:, None], source_bin[:, None]], axis=1
+        )
+        features_target = np.concatenate(
+            [features_target, point_idx_target[:, None], target_bin[:, None]], axis=1
+        )
+
+        pointcloud_mix = np.concatenate([pointcloud_source, pointcloud_target], axis=0)
+        features_mix = np.concatenate([features_source, features_target], axis=0)
+        label_mix = np.concatenate([label_source, label_target], axis=0)
+
+        sub_pc_mix, sub_feat_mix, sub_labels_mix = DataProcessing.grid_subsampling(
+            pointcloud_mix,
+            features=features_mix,
+            labels=label_mix,
+            grid_size=cfg.grid_size,
+        )
+        search_tree = KDTree(sub_pc_mix)
+
+        sub_pc_mix, selected_idxs_mix, center_point_mix = self.trans_point_sampler(
+            pc=sub_pc_mix,
+            feat=sub_feat_mix,
+            label=sub_labels_mix,
+            search_tree=search_tree,
+            num_points=self.cfg.num_points,
+        )
+        sub_labels_mix = sub_labels_mix[selected_idxs_mix]
+        sub_feat_mix = sub_feat_mix[selected_idxs_mix]
+
+        # normalize here
+        self.augmenter.augment(
+            pointcloud_source, features_source, label_source, norm_augment_cfg, seed=rng
+        )
+        self.augmenter.augment(
+            pointcloud_target, features_target, label_target, norm_augment_cfg, seed=rng
+        )
+        self.augmenter.augment(
+            sub_pc_mix, sub_feat_mix, sub_labels_mix, norm_augment_cfg, seed=rng
+        )
+
+        if features_source is None:
+            features_source = pointcloud_source.copy()
+        else:
+            features_source = np.concatenate(
+                [pointcloud_source, features_source], axis=1
+            )
+
+        if features_target is None:
+            features_target = pointcloud_target.copy()
+        else:
+            features_target = np.concatenate(
+                [pointcloud_target, features_target], axis=1
+            )
+
+        if sub_feat_mix is None:
+            sub_feat_mix = sub_pc_mix.copy()
+        else:
+            sub_feat_mix = np.concatenate([sub_pc_mix, sub_feat_mix], axis=1)
+
+        input_points = []
+        input_neighbors = []
+        input_pools = []
+        input_up_samples = []
+
+        input_points_t = []
+        input_neighbors_t = []
+        input_pools_t = []
+        input_up_samples_t = []
+
+        for i in range(cfg.num_layers):
+            # TODO: Replace with Open3D KNN
+            neighbour_idx = DataProcessing.knn_search(
+                sub_pc_mix, sub_pc_mix, cfg.num_neighbors
+            )
+            neighbour_idx_t = DataProcessing.knn_search(
+                pointcloud_target, pointcloud_target, cfg.num_neighbors
+            )
+
+            sub_points = sub_pc_mix[
+                : sub_pc_mix.shape[0] // cfg.sub_sampling_ratio[i], :
+            ]
+            sub_points_t = pointcloud_target[
+                : pointcloud_target.shape[0] // cfg.sub_sampling_ratio[i], :
+            ]
+            pool_i = neighbour_idx[
+                : sub_pc_mix.shape[0] // cfg.sub_sampling_ratio[i], :
+            ]
+            pool_i_t = neighbour_idx_t[
+                : pointcloud_target.shape[0] // cfg.sub_sampling_ratio[i], :
+            ]
+            up_i = DataProcessing.knn_search(sub_points, sub_pc_mix, 1)
+            up_i_t = DataProcessing.knn_search(sub_points_t, pointcloud_target, 1)
+            input_points.append(sub_pc_mix)
+            input_points_t.append(pointcloud_target)
+            input_neighbors.append(neighbour_idx.astype(np.int64))
+            input_neighbors_t.append(neighbour_idx_t.astype(np.int64))
+            input_pools.append(pool_i.astype(np.int64))
+            input_pools_t.append(pool_i_t.astype(np.int64))
+            input_up_samples.append(up_i.astype(np.int64))
+            input_up_samples_t.append(up_i_t.astype(np.int64))
+            sub_pc_mix = sub_points
+            pointcloud_target = sub_points_t
+
+        inputs["coords"] = input_points
+        inputs["neighbor_indices"] = input_neighbors
+        inputs["sub_idx"] = input_pools
+        inputs["interp_idx"] = input_up_samples
+        inputs["features"] = sub_feat_mix
+        inputs["point_inds"] = selected_idxs_mix
+        inputs["labels"] = sub_labels_mix.astype(np.int64)
+
+        inputs_target["coords"] = input_points_t
+        inputs_target["neighbor_indices"] = input_neighbors_t
+        inputs_target["sub_idx"] = input_pools_t
+        inputs_target["interp_idx"] = input_up_samples_t
+        inputs_target["features"] = features_target
+        inputs_target["point_inds"] = selected_idxs_target
+        inputs_target["labels"] = label_target.astype(np.int64)
+
+        return {"mixed": inputs, "target": inputs_target}
+
+
+MODEL._register_module(RandLANetMixer, "torch")
 
 
 class SharedMLP(nn.Module):

@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 
 # use relative import for being compatible with Open3d main repo
 from ...utils import Config, get_module
-from ...datasets.samplers import SemSegRandomSampler
 
 
 class BaseModel(ABC, torch.nn.Module):
