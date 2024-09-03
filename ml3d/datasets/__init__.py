@@ -6,6 +6,7 @@ from .parislille3d import ParisLille3D
 from .toronto3d import Toronto3D
 from .customdataset import Custom3D
 from .semantic3d import Semantic3D
+from .semsup_dataset import SemSupDataset
 from .sensat import SensatUrban
 from .delft_sum import SUMDataset
 from .turin_dataset import TurinDataset3D
@@ -56,4 +57,5 @@ __all__ = [
     "SunRGBD",
     "MatterportObjects",
     "TUMFacade",
+    "SemSupDataset",
 ]
