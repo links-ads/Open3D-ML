@@ -752,7 +752,7 @@ class SemanticSegmentation(BasePipeline):
         # Fixed size point clouds
         elif self.model.cfg["name"] in ("RandLANet", "PVCNN"):  # Tuple input
             if self.model.cfg["name"] == "RandLANet":
-                pointcloud = input_data["xyz"][0]  # 0 => input to first layer
+                pointcloud = input_data["coords"][0]  # 0 => input to first layer
             elif self.model.cfg["name"] == "PVCNN":
                 pointcloud = input_data["point"].transpose(1, 2)
             pcd_step = int(
@@ -840,7 +840,7 @@ class SemanticSegmentation(BasePipeline):
                     "/".join((stage, key)),
                     summary_dict,
                     epoch,
-                    max_outputs=0,
+                    max_outputs=1,
                     label_to_names=label_to_names,
                 )
 
