@@ -31,3 +31,4 @@ kernels/
 train_log/
 pc/
 experiments/
+cprofile/
