@@ -3,7 +3,7 @@ import torch
 from abc import ABC, abstractmethod
 
 # use relative import for being compatible with Open3d main repo
-from ...utils import Config
+from ...utils import Config, get_module
 from ...datasets.samplers import SemSegRandomSampler
 
 
@@ -19,10 +19,14 @@ class BaseModel(ABC, torch.nn.Module):
             **kwargs (dict): Dict of args
         """
         super().__init__()
-
-        self.trans_point_sampler = SemSegRandomSampler.get_point_sampler()
         self.cfg = Config(kwargs)
-        self.rng = np.random.default_rng(kwargs.get('seed', None))
+        sampler_cfg = self.cfg.get("sampler", {"name": "SemSegRandomSampler"})
+        self.trans_point_sampler = get_module(
+            "sampler", sampler_cfg["name"]
+        ).get_point_sampler()
+        # self.trans_point_sampler = SemSegRandomSampler.get_point_sampler()
+
+        self.rng = np.random.default_rng(kwargs.get("seed", None))
 
     @abstractmethod
     def get_loss(self, Loss, results, inputs, device):
