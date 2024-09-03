@@ -2,11 +2,11 @@ dataset:
   name: ConcatDataset
   steps_per_epoch_train: 100
   steps_per_epoch_valid: 10
-  test_result_folder: ./logs
+  test_result_folder: ./test
   cache_dir: ./dataset_cache/sensat5
-  class_weights: [579547289, 550856858, 904143863, 340505589, 708884] #morewater
+  class_weights: [579547289, 550856858, 904143863, 340505589, 7088841]
   num_classes: 5
-  use_cache: true 
+  use_cache: true
   datasets:
     - 
       name: SensatUrban

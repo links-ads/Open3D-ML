@@ -2,31 +2,46 @@ dataset:
   name: ConcatDataset
   steps_per_epoch_train: 100
   steps_per_epoch_valid: 10
-  test_result_folder: ./logs
-  cache_dir: ./dataset_cache/sensat5
-  class_weights: [579547289, 550856858, 904143863, 340505589, 708884] #morewater
+  test_result_folder: ./test
+  cache_dir: ./dataset_cache/concat3_5_map_aug
+  class_weights: [1405884621, 900549788, 2218124110, 214645344, 358830460]
   num_classes: 5
+  num_points: 65536
+  # Taxonomy is Ground, Vegetation, Building, Street Element, Water
+  ignored_label_inds:
+    - 0
   use_cache: true 
   datasets:
+    -
+      name: SUMDataset
+      dataset_path: data/datasets/SUM/1.0/SUM_Helsinki_C6_pcl_300
+      train_files: train/*
+      val_files: validate/*
+      test_files: test/*
+      class_map:
+        1: 1
+        2: 2
+        3: 3
+        4: 5
+        5: 4
+        6: 4
     - 
       name: SensatUrban
       dataset_path: data/digitwin/sensatUrban/ply
-      num_points: 32768  
-      # Taxonomy is Ground, Vegetation, Building, Street Element, Water
       class_map:
-        0: 0
-        1: 1
-        2: 2
-        3: 2
-        4: 3
-        5: 0
-        6: 3
-        7: 0
-        8: 3
-        9: 3
-        10: 0
-        11: 3
-        12: 4
+        0: 1
+        1: 2
+        2: 3
+        3: 3
+        4: 4
+        5: 1
+        6: 4
+        7: 1
+        8: 4
+        9: 4
+        10: 4
+        11: 4
+        12: 5
       train_files:
         - train/birmingham_block_10.ply
         - train/birmingham_block_11.ply
@@ -70,15 +85,35 @@ dataset:
         - test/cambridge_block_22.ply
         - test/cambridge_block_16.ply
         - test/cambridge_block_27.ply
+    -
+      name: Toronto3D
+      dataset_path: data/digitwin/Toronto3D
+      class_map:
+        1: 1
+        2: 1
+        3: 2
+        4: 3
+        5: 4
+        6: 4
+        7: 4
+        8: 4
+      test_files:
+      - L002.ply
+      train_files:
+      - L001.ply
+      - L003.ply
+      - L004.ply
+      val_files:
+      - L002.ply
 model:
   name: RandLANet
   batcher: DefaultBatcher
   ckpt_path: # path/to/your/checkpoint
   num_neighbors: 16
   num_layers: 5
-  num_points: 32768
+  num_points: 65536
   num_classes: 5
-  ignored_label_inds: []
+  ignored_label_inds: [0]
   sub_sampling_ratio: [4, 4, 4, 4, 2]
   in_channels: 6
   dim_input: 6
@@ -95,8 +130,8 @@ model:
       randomize_blend_factor: False
       blend_factor: 0.75
     HueSaturationTranslation:
-      hue_max: 0.3
-      saturation_max: 0.4
+      hue_max: 0.0
+      saturation_max: 0.75
       saturation_sign: -1
     noise:
       noise_std: 0.001
@@ -104,17 +139,18 @@ model:
       method: "vertical"
     RandomHorizontalFlip:
       axes: [0, 1]
+ 
 pipeline:
   name: SemanticSegmentation
   optimizer:
     lr: 0.001
   batch_size: 4
-  main_log_dir: ./test
-  max_epoch: 400
-  save_ckpt_freq: 20
+  main_log_dir: ./experiments/weight_paper
+  max_epoch: 200
+  save_ckpt_freq: 1
   scheduler_gamma: 0.99
   test_batch_size: 1
-  train_sum_dir: ./test
+  train_sum_dir: ./experiments/weight_paper
   num_workers: 0
   pin_memory: false
   val_batch_size: 2

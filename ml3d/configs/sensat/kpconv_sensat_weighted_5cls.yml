@@ -1,17 +1,17 @@
 dataset:
   name: ConcatDataset
-  steps_per_epoch_train: 100
-  steps_per_epoch_valid: 10
-  test_result_folder: ./logs
-  cache_dir: ./dataset_cache/sensat5
-  class_weights: [579547289, 550856858, 904143863, 340505589, 708884] #morewater
+  steps_per_epoch_train: 1000
+  steps_per_epoch_valid: 100
+  test_result_folder: ./test
+  cache_dir: ./dataset_cache/sensat5_kpconv
+  class_weights: [579547289, 550856858, 904143863, 340505589, 7088841]
   num_classes: 5
-  use_cache: true 
+  # Taxonomy is Ground, Vegetation, Building, Street Element, Water
+  use_cache: false 
   datasets:
     - 
       name: SensatUrban
       dataset_path: data/digitwin/sensatUrban/ply
-      num_points: 32768  
       # Taxonomy is Ground, Vegetation, Building, Street Element, Water
       class_map:
         0: 0
@@ -70,54 +70,90 @@ dataset:
         - test/cambridge_block_22.ply
         - test/cambridge_block_16.ply
         - test/cambridge_block_27.ply
+ 
 model:
-  name: RandLANet
-  batcher: DefaultBatcher
+  name: KPFCNN
   ckpt_path: # path/to/your/checkpoint
-  num_neighbors: 16
-  num_layers: 5
-  num_points: 32768
-  num_classes: 5
+  KP_extent: 1.2
+  KP_influence: linear
+  aggregation_mode: sum
+  architecture:
+  - simple
+  - resnetb
+  - resnetb_strided
+  - resnetb
+  - resnetb
+  - resnetb_strided
+  - resnetb
+  - resnetb
+  - resnetb_strided
+  - resnetb_deformable
+  - resnetb_deformable
+  - resnetb_deformable_strided
+  - resnetb_deformable
+  - resnetb_deformable
+  - nearest_upsample
+  - unary
+  - nearest_upsample
+  - unary
+  - nearest_upsample
+  - unary
+  - nearest_upsample
+  - unary
+  augment_color: 0.8
+  augment_noise: 0.001
+  augment_rotation: vertical
+  augment_scale_anisotropic: true #???
+  augment_scale_max: 1.1
+  augment_scale_min: 0.9
+  augment_symmetries:
+  - true
+  - false
+  - false
+  batch_limit: 50000
+  batch_norm_momentum: 0.98 #???
+  batcher: ConcatBatcher
+  conv_radius: 2.5
+  deform_fitting_mode: point2point
+  deform_fitting_power: 1.0
+  deform_radius: 6.0
+  deform_lr_factor: 0.1
+  density_parameter: 5.0
+  first_features_dim: 128
+  first_subsampling_dl: 0.2
+  fixed_kernel_points: center
   ignored_label_inds: []
-  sub_sampling_ratio: [4, 4, 4, 4, 2]
-  in_channels: 6
-  dim_input: 6
-  dim_features: 8
-  dim_output: [16, 64, 128, 256, 512]
-  grid_size: 0.2
-  augment:
-    recenter:
-      dim: [0, 1, 2]
-    normalize:
-      points:
-        method: linear
-    ChromaticAutoContrast:
-      randomize_blend_factor: False
-      blend_factor: 0.75
-    HueSaturationTranslation:
-      hue_max: 0.3
-      saturation_max: 0.4
-      saturation_sign: -1
-    noise:
-      noise_std: 0.001
-    rotate:
-      method: "vertical"
-    RandomHorizontalFlip:
-      axes: [0, 1]
+  in_features_dim: 5
+  in_points_dim: 3
+  in_radius: 4.0
+  lbl_values: [0, 1, 2, 3, 4]
+  max_in_points: 50000
+  min_in_points: 25000
+  modulated: false
+  num_classes: 5
+  num_kernel_points: 15
+  repulse_extent: 1.2
+  use_batch_norm: true
+ 
 pipeline:
   name: SemanticSegmentation
-  optimizer:
-    lr: 0.001
-  batch_size: 4
-  main_log_dir: ./test
-  max_epoch: 400
-  save_ckpt_freq: 20
+  momentum: 0.98
+  adam_lr: 0.01
+  batch_size: 1
+  learning_rate: 0.01
+  lr_decays: 0.98477
+  deform_lr_factor: 0.1
+  scheduler_gamma: 0.98477
+  main_log_dir: ./experiments/kpconv
+  max_epoch: 200
+  save_ckpt_freq: 10
   scheduler_gamma: 0.99
   test_batch_size: 1
-  train_sum_dir: ./test
+  train_sum_dir: ./experiments/kpconv
   num_workers: 0
   pin_memory: false
-  val_batch_size: 2
+  val_batch_size: 1
+  weight_decay: 0.001
   summary:
     record_for: []
     max_pts:

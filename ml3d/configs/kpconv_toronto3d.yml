@@ -1,11 +1,13 @@
 dataset:
   name: Toronto3D
-  dataset_path: # path/to/your/dataset
+  dataset_path: data/digitwin/Toronto3D
   cache_dir: ./logs/cache
   class_weights: [35391894., 1449308., 14650919., 18252779.,
               589856., 743579., 4311631., 356463.]
   ignored_label_inds:
   - 0
+  num_classes: 8
+  num_points: 65536
   test_files:
   - L002.ply
   test_result_folder: ./test
@@ -16,8 +18,6 @@ dataset:
   val_files:
   - L002.ply
   use_cache: true
-  sampler:
-    name: SemSegSpatiallyRegularSampler
   steps_per_epoch_train: 100
   steps_per_epoch_valid: 10
 model:
@@ -96,6 +96,8 @@ pipeline:
   test_batch_size: 1
   train_sum_dir: train_log
   val_batch_size: 1
+  num_workers: 0
+  pin_memory: false
   summary:
     record_for: []
     max_pts:

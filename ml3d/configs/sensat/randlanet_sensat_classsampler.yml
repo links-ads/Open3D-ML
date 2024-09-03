@@ -4,14 +4,18 @@ dataset:
   steps_per_epoch_valid: 10
   test_result_folder: ./logs
   cache_dir: ./dataset_cache/sensat5
-  class_weights: [579547289, 550856858, 904143863, 340505589, 708884] #morewater
+  class_weights: [579547289, 550856858, 904143863, 340505589, 7088841]
   num_classes: 5
+  sampler:
+    name: SemSegRandomClassSampler
   use_cache: true 
   datasets:
     - 
       name: SensatUrban
       dataset_path: data/digitwin/sensatUrban/ply
-      num_points: 32768  
+      num_points: 65536  
+      sampler:
+        name: SemSegRandomClassSampler
       # Taxonomy is Ground, Vegetation, Building, Street Element, Water
       class_map:
         0: 0
@@ -76,7 +80,10 @@ model:
   ckpt_path: # path/to/your/checkpoint
   num_neighbors: 16
   num_layers: 5
-  num_points: 32768
+  num_points: 65536
+  sampler:
+    name: SemSegRandomClassSampler
+    classes: [0, 1, 2, 3, 4]
   num_classes: 5
   ignored_label_inds: []
   sub_sampling_ratio: [4, 4, 4, 4, 2]
@@ -91,26 +98,22 @@ model:
     normalize:
       points:
         method: linear
-    ChromaticAutoContrast:
-      randomize_blend_factor: False
-      blend_factor: 0.75
-    HueSaturationTranslation:
-      hue_max: 0.3
-      saturation_max: 0.4
-      saturation_sign: -1
-    noise:
-      noise_std: 0.001
     rotate:
       method: "vertical"
-    RandomHorizontalFlip:
-      axes: [0, 1]
+    noise:
+      noise_std: 0.001
+    ChromaticAutoContrast:
+      randomize_blend_factor: true
+    HueSaturationTranslation:
+      hue_max: 0.5
+      saturation_max: 0.2
 pipeline:
   name: SemanticSegmentation
   optimizer:
     lr: 0.001
   batch_size: 4
   main_log_dir: ./test
-  max_epoch: 400
+  max_epoch: 1
   save_ckpt_freq: 20
   scheduler_gamma: 0.99
   test_batch_size: 1

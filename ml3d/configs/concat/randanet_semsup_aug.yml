@@ -1,0 +1,112 @@
+dataset:
+  name: SemSupDataset
+  steps_per_epoch_train: 100
+  steps_per_epoch_valid: 10
+  test_result_folder: ./test
+  use_cache: false
+  num_classes: 5
+  class_weights: [438547425, 550420181, 879623750, 20980938, 3044807]  
+  num_points: 65536
+  # Taxonomy is Ground, Vegetation, Building, Street Element, Water
+  ignored_label_inds:
+    - 0
+  datasets:
+    -
+      name: SensatUrban
+      dataset_path: data/digitwin/sensatUrban/ply
+      class_map:
+        0: 1
+        1: 2
+        2: 3
+        3: 3
+        4: 4
+        5: 1
+        6: 4
+        7: 1
+        8: 4
+        9: 4
+        10: 4
+        11: 4
+        12: 5
+      train_files:
+      - train/birmingham_block_10.ply
+      - train/birmingham_block_11.ply
+      - train/birmingham_block_12.ply
+      - train/birmingham_block_13.ply
+      - train/birmingham_block_3.ply
+      - train/birmingham_block_4.ply
+      - train/birmingham_block_6.ply
+      val_files:
+      - train/birmingham_block_1.ply
+      - train/birmingham_block_5.ply
+      - train/cambridge_block_10.ply
+      - train/cambridge_block_7.ply
+      test_files:
+      - test/birmingham_block_2.ply
+      - test/birmingham_block_8.ply
+      - test/cambridge_block_15.ply
+      - test/cambridge_block_22.ply
+      - test/cambridge_block_16.ply
+      - test/cambridge_block_27.ply
+    -
+      name: TurinDataset3D
+      dataset_path: data/digitwin/sansalvario_crop
+      num_points: 65536
+      train_dir: Lidar_consegna
+      val_dir: Lidar_consegna
+      test_dir: Lidar_consegna
+      offset: [396000, 4989500, 0]
+model:
+  name: RandLANetWrapper
+  batcher: DefaultBatcher
+  ckpt_path: # path/to/your/checkpoint
+  num_neighbors: 16
+  num_layers: 5
+  num_points: 65536
+  num_classes: 14
+  ignored_label_inds: [0]
+  sub_sampling_ratio: [4, 4, 4, 4, 2]
+  in_channels: 6
+  dim_input: 6
+  dim_features: 8
+  dim_output: [16, 64, 128, 256, 512]
+  grid_size: 0.2
+  augment:
+    recenter:
+      dim: [0, 1, 2]
+    normalize:
+      points:
+        method: linear
+    ChromaticAutoContrast:
+      randomize_blend_factor: False
+      blend_factor: 0.75
+    HueSaturationTranslation:
+      hue_max: 0.0
+      saturation_max: 0.75
+      saturation_sign: -1
+    noise:
+      noise_std: 0.001
+    rotate:
+      method: "vertical"
+    RandomHorizontalFlip:
+      axes: [0, 1]
+      
+pipeline:
+  name: SemanticSegmentation
+  optimizer:
+    lr: 0.01
+  batch_size: 4
+  main_log_dir: ./experiments/weight_paper
+  max_epoch: 200
+  save_ckpt_freq: 1
+  scheduler_gamma: 0.99
+  test_batch_size: 1
+  train_sum_dir: ./experiments/weight_paper
+  num_workers: 0
+  pin_memory: false
+  val_batch_size: 2
+  summary:
+    record_for: []
+    max_pts:
+    use_reference: false
+    max_outputs: 1

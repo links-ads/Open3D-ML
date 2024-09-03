@@ -1,0 +1,91 @@
+dataset:
+  name: SemSupDataset
+  steps_per_epoch_train: 16
+  steps_per_epoch_valid: 16
+  test_result_folder: ./test
+  use_cache: true
+  cache_dir: ./dataset_cache/test_semsup
+  num_classes: 5
+  class_weights: [438547425, 550420181, 879623750, 20980938, 3044807]  
+  num_points: 65536
+  # Taxonomy is Ground, Vegetation, Building, Street Element, Water
+  ignored_label_inds:
+    - 0
+  datasets:
+    -
+      name: SensatUrban
+      dataset_path: data/digitwin/sensatUrban/ply
+      class_map:
+        0: 1
+        1: 2
+        2: 3
+        3: 3
+        4: 4
+        5: 1
+        6: 4
+        7: 1
+        8: 4
+        9: 4
+        10: 4
+        11: 4
+        12: 5
+      train_files:
+        - train/birmingham_block_10.ply
+        - train/birmingham_block_11.ply
+      val_files:
+        - train/birmingham_block_1.ply
+      test_files:
+        - test/birmingham_block_2.ply
+        - test/cambridge_block_27.ply
+    -
+      name: TurinDataset3D
+      dataset_path: data/digitwin/sansalvario_crop
+      num_points: 65536
+      train_dir: Lidar_consegna
+      val_dir: Lidar_consegna
+      test_dir: Lidar_consegna
+      offset: [396000, 4989500, 0]
+model:
+  name: RandLANetMixer
+  batcher: DefaultBatcher
+  ckpt_path: # path/to/your/checkpoint
+  num_neighbors: 16
+  num_layers: 5
+  ema: 0.99
+  num_points: 65536
+  num_classes: 5
+  ignored_label_inds: [0]
+  sub_sampling_ratio: [4, 4, 4, 4, 2]
+  in_channels: 6
+  dim_input: 6
+  dim_features: 8
+  dim_output: [16, 64, 128, 256, 512]
+  grid_size: 0.2
+  augment:
+    recenter:
+      dim: [0, 1, 2]
+    normalize:
+      points:
+        method: linear
+pipeline:
+  name: SemiSupervisedSegmentation
+  optimizer:
+    lr: 0.01
+  batch_size: 4
+  confidence_th: 0.5
+  main_log_dir: ./test
+  max_epoch: 10
+  save_ckpt_freq: 10
+  ema_start_epoch: -1
+  confidence_th: 0.80
+  scheduler_gamma: 0.99
+  test_batch_size: 1
+  train_sum_dir: ./test
+  num_workers: 0
+  pin_memory: false
+  val_batch_size: 4
+  summary:
+    record_for: ["valid"]
+    max_pts:
+    use_reference: false
+    max_outputs: 1

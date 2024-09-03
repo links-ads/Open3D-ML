@@ -1,0 +1,198 @@
+dataset:
+  name: ConcatDataset
+  steps_per_epoch_train: 100
+  steps_per_epoch_valid: 10
+  test_result_folder: ./test
+  cache_dir: ./dataset_cache/concat3_5_map_aug
+  class_weights: [1405884621, 900549788, 2218124110, 214645344, 358830460]
+  num_classes: 5
+  num_points: 65536
+  # Taxonomy is Ground, Vegetation, Building, Street Element, Water
+  ignored_label_inds:
+    - 0
+  use_cache: true 
+  datasets:
+    -
+      name: SUMDataset
+      dataset_path: data/datasets/SUM/1.0/SUM_Helsinki_C6_pcl_300
+      train_files: train/*
+      val_files: validate/*
+      test_files: test/*
+      class_map:
+        1: 1
+        2: 2
+        3: 3
+        4: 5
+        5: 4
+        6: 4
+    - 
+      name: SensatUrban
+      dataset_path: data/digitwin/sensatUrban/ply
+      class_map:
+        0: 1
+        1: 2
+        2: 3
+        3: 3
+        4: 4
+        5: 1
+        6: 4
+        7: 1
+        8: 4
+        9: 4
+        10: 4
+        11: 4
+        12: 5
+      train_files:
+        - train/birmingham_block_10.ply
+        - train/birmingham_block_11.ply
+        - train/birmingham_block_12.ply
+        - train/birmingham_block_13.ply
+        - train/birmingham_block_3.ply
+        - train/birmingham_block_4.ply
+        - train/birmingham_block_6.ply
+        - train/cambridge_block_12.ply
+        - train/cambridge_block_13.ply
+        - train/cambridge_block_14.ply
+        - train/cambridge_block_17.ply
+        - train/cambridge_block_18.ply
+        - train/cambridge_block_19.ply
+        - train/cambridge_block_2.ply
+        - train/cambridge_block_20.ply
+        - train/cambridge_block_21.ply
+        - train/cambridge_block_23.ply
+        - train/cambridge_block_25.ply
+        - train/cambridge_block_26.ply
+        - train/cambridge_block_28.ply
+        - train/cambridge_block_3.ply
+        - train/cambridge_block_32.ply
+        - train/cambridge_block_33.ply
+        - train/cambridge_block_4.ply
+        - train/cambridge_block_6.ply
+        - train/birmingham_block_0.ply
+        - train/birmingham_block_7.ply
+        - train/birmingham_block_9.ply
+        - train/cambridge_block_8.ply
+        - train/cambridge_block_9.ply
+      val_files:
+        - train/birmingham_block_1.ply
+        - train/birmingham_block_5.ply
+        - train/cambridge_block_10.ply
+        - train/cambridge_block_7.ply
+      test_files:
+        - test/birmingham_block_2.ply
+        - test/birmingham_block_8.ply
+        - test/cambridge_block_15.ply
+        - test/cambridge_block_22.ply
+        - test/cambridge_block_16.ply
+        - test/cambridge_block_27.ply
+    -
+      name: Toronto3D
+      dataset_path: data/digitwin/Toronto3D
+      class_map:
+        1: 1
+        2: 1
+        3: 2
+        4: 3
+        5: 4
+        6: 4
+        7: 4
+        8: 4
+      test_files:
+      - L002.ply
+      train_files:
+      - L001.ply
+      - L003.ply
+      - L004.ply
+      val_files:
+      - L002.ply
+model:
+  name: KPFCNN
+  ckpt_path: # path/to/your/checkpoint
+  KP_extent: 1.2
+  KP_influence: linear
+  aggregation_mode: sum
+  architecture:
+  - simple
+  - resnetb
+  - resnetb_strided
+  - resnetb
+  - resnetb
+  - resnetb_strided
+  - resnetb
+  - resnetb
+  - resnetb_strided
+  - resnetb
+  - resnetb
+  - resnetb_strided
+  - resnetb
+  - nearest_upsample
+  - unary
+  - nearest_upsample
+  - unary
+  - nearest_upsample
+  - unary
+  - nearest_upsample
+  - unary
+  augment_color: 1.0
+  augment_noise: 0.001
+  augment_rotation: vertical
+  augment_scale_anisotropic: true
+  augment_scale_max: 1.1
+  augment_scale_min: 0.9
+  augment_symmetries:
+  - true
+  - false
+  - false
+  batch_limit: 20000
+  batch_norm_momentum: 0.98
+  batcher: ConcatBatcher
+  conv_radius: 2.5
+  deform_fitting_mode: point2point
+  deform_fitting_power: 1.0
+  deform_radius: 6.0
+  density_parameter: 5.0
+  first_features_dim: 128
+  first_subsampling_dl: 0.04
+  fixed_kernel_points: center
+  ignored_label_inds: [0]
+  in_features_dim: 5
+  in_points_dim: 3
+  in_radius: 1.5
+  lbl_values: [0, 1, 2, 3, 4, 5]
+  max_in_points: 20000
+  modulated: false
+  num_classes: 5
+  num_kernel_points: 15
+  num_layers: 5
+  repulse_extent: 1.2
+  use_batch_norm: true
+  t_normalize:
+    method: linear
+    normalize_points: False
+    feat_bias: 0
+    feat_scale: 255
+ 
+pipeline:
+  name: SemanticSegmentation
+  adam_lr: 0.01
+  learning_rate: 0.01
+  lr_decays: 0.98477
+  deform_lr_factor: 0.1
+  momentum: 0.98
+  scheduler_gamma: 0.98477
+  batch_size: 64
+  main_log_dir: ./experiments/kpconv
+  max_epoch: 200
+  save_ckpt_freq: 10
+  scheduler_gamma: 0.99
+  test_batch_size: 1
+  train_sum_dir: ./experiments/kpconv
+  num_workers: 0
+  pin_memory: false
+  val_batch_size: 32
+  weight_decay: 0.001
+  summary:
+    record_for: []
+    max_pts:
+    use_reference: false
+    max_outputs: 1
