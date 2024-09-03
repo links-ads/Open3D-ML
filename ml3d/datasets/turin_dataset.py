@@ -195,6 +195,7 @@ class TurinDataset3D(Custom3D):
 
         store_path = os.path.join(path, name + "." + self.file_format)
         las.write(store_path)
+        log.info("Saved {} in {}.".format(name, store_path))
 
 
 DATASET._register_module(TurinDataset3D)
