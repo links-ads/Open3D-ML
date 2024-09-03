@@ -50,20 +50,52 @@ class Cache(object):
         Returns:
             class: Preprocessed (cache) data.
         """
-        fpath = join(self.cache_dir, str('{}.npy'.format(unique_id)))
+        fpath = join(self.cache_dir, str("{}.npy".format(unique_id)))
 
         if not exists(fpath):
             output = self.func(*data)
 
             self._write(output, fpath)
             self.cached_ids.append(unique_id)
+            return None
         else:
             output = self._read(fpath)
-
-        return self._read(fpath)
+            return output
 
     def _write(self, x, fpath):
         np.save(fpath, x)
 
     def _read(self, fpath):
         return np.load(fpath, allow_pickle=True).item()
+
+
+class CacheSemSup(Cache):
+    """Cache converter for preprocessed data."""
+
+    def __call__(self, path1: str, path2: str, *data):
+        """Call the converter. If the cache exists, load and return the cache,
+        otherwise run the preprocess function and store the cache.
+
+        Args:
+            unique_id: A unique key of this data.
+            data: Input to the preprocess function.
+
+        Returns:
+            class: Preprocessed (cache) data.
+        """
+        fpath1 = join(self.cache_dir, str("{}.npy".format(path1)))
+        fpath2 = join(self.cache_dir, str("{}.npy".format(path2)))
+        output = None
+        if not exists(fpath1):
+            output = self.func(*data)
+
+            self._write(output["source"], fpath1)
+            self.cached_ids.append(path1)
+
+        if not exists(fpath2):
+            if output is None:
+                output = self.func(*data)
+            self._write(output["target"], fpath2)
+            self.cached_ids.append(path2)
+
+        return {"source": self._read(fpath1), "target": self._read(fpath2)}
