@@ -230,9 +230,12 @@ class SemsegAugmentation(Augmentation):
             lo = feats[:, :3].min(0, keepdims=True)
             hi = feats[:, :3].max(0, keepdims=True)
 
+            if (hi == lo).any():
+                return feats
+
             assert (
                 hi.max() > 1
-            ), "Invalid color value. Color is supposed to be in [0-255] for ChromaticAutoContrast augmentation"
+            ), f"Invalid color value. Color is supposed to be in [0-255] for ChromaticAutoContrast augmentation, got {hi} and {lo}"
 
             scale = 255 / (hi - lo)
 

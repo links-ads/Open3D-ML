@@ -89,7 +89,11 @@ class TorchDataloader(Dataset):
         else:
             data = dataset.get_data(index)
         if self.transform is not None:
-            data = self.transform(data, attr)
+            try:
+                data = self.transform(data, attr)
+            except Exception as e:
+                print(f'Error in transforming: {attr}')
+                raise e
 
         inputs = {"data": data, "attr": attr}
 

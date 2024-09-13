@@ -12,6 +12,7 @@ from .delft_sum import SUMDataset
 from .turin_dataset import TurinDataset3D
 from .concat import ConcatDataset
 from .eclair import ECLAIRDataset
+from .fractal import FRACTALDataset
 from .inference_dummy import InferenceDummySplit
 from .samplers import SemSegRandomSampler, SemSegSpatiallyRegularSampler
 from . import utils
@@ -40,6 +41,7 @@ __all__ = [
     "SUMDataset",
     "TurinDataset3D",
     "ECLAIRDataset",
+    "FRACTALDataset",
     "Custom3D",
     "utils",
     "augment",

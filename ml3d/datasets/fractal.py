@@ -75,7 +75,7 @@ class FRACTALDatasetSplit:
         pc_path = Path(self.path_list[idx])
         name = pc_path.stem
 
-        attr = {"name": name, "path": str(pc_path), "split": self.split}
+        attr = {"idx":idx, "name": name, "path": str(pc_path), "split": self.split}
 
         return attr
 
@@ -114,9 +114,9 @@ class FRACTALDataset(BaseDataset):
         self.offset = np.array(offset)
 
         base = Path(dataset_path)
-        self.train_files = (base / train_dir).glob("*.laz")
-        self.val_files = (base / val_dir).glob("*.laz")
-        self.test_files = (base / test_dir).glob("*.laz")
+        self.train_files = list((base / train_dir).glob("*.laz"))
+        self.val_files = list((base / val_dir).glob("*.laz"))
+        self.test_files = list((base / test_dir).glob("*.laz"))
 
 
     @staticmethod
