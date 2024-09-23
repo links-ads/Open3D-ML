@@ -227,13 +227,13 @@ class SemiSupervisedSegmentation(BasePipeline):
         self.optimizer, self.scheduler = student_model.get_optimizer(cfg)
 
         is_resume = student_model.cfg.get("is_resume", True)
+        load_optimizer = student_model.cfg.get("load_optimizer", True)
+        load_scheduler = student_model.cfg.get("load_scheduler", True)
         self.load_ckpt(
             student_model.cfg.ckpt_path,
             is_resume=is_resume,
-        )
-        self.load_ckpt(
-            teacher_model.cfg.ckpt_path,
-            is_resume=is_resume,
+            load_optimizer=load_optimizer,
+            load_scheduler=load_scheduler,
         )
 
         writer = SummaryWriter(self.cfg.logs_dir)
@@ -250,6 +250,9 @@ class SemiSupervisedSegmentation(BasePipeline):
             self.losses = []
             student_model.trans_point_sampler = train_sampler.get_point_sampler()
             teacher_model.trans_point_sampler = train_sampler.get_point_sampler()
+            if epoch == cfg.get("ema_start_epoch", 10):
+                log.info("Copying from student model to teacher model with EMA")
+                teacher_model.copy_params(student_model)
 
             for step, inputs in enumerate(tqdm(train_loader, desc="training")):
                 # FIXME: move in forward
@@ -280,7 +283,7 @@ class SemiSupervisedSegmentation(BasePipeline):
 
                 target_idx = target_idx.to(torch.int32).cpu()  # TO INT # TO CPU
                 # Inference of target pointcloud to get pseudo labels
-                if epoch > cfg.get("ema_start_epoch", 10):
+                if epoch >= cfg.get("ema_start_epoch", 10):
                     with torch.no_grad():
                         results_target = teacher_model(inputs_target).cpu()
                         softmax_target = F.softmax(results_target, dim=-1)
@@ -341,8 +344,6 @@ class SemiSupervisedSegmentation(BasePipeline):
                     )
                 self.optimizer.step()
                 # now update the teacher model with EMA
-                if epoch > cfg.get("ema_start_epoch", 10):
-                    teacher_model.update_ema(student_model)
 
                 self.metric_train.update(predict_scores, gt_labels)
 
@@ -353,6 +354,9 @@ class SemiSupervisedSegmentation(BasePipeline):
                         results, inputs["data"], epoch
                     )
             self.scheduler.step()
+
+            if epoch >= cfg.get("ema_start_epoch", 10):
+                teacher_model.update_ema(student_model)
 
             # --------------------- validation
             student_model.eval()
@@ -589,7 +593,13 @@ class SemiSupervisedSegmentation(BasePipeline):
                 )
 
     def load_ckpt(
-        self, ckpt_path=None, is_resume=True, from_binary=False, freeze_encoder=False
+        self,
+        ckpt_path=None,
+        is_resume=True,
+        from_binary=False,
+        freeze_encoder=False,
+        load_optimizer=True,
+        load_scheduler=True,
     ):
         """Load a checkpoint. You must pass the checkpoint and indicate if you
         want to resume.
@@ -614,18 +624,19 @@ class SemiSupervisedSegmentation(BasePipeline):
             ckpt["model_state_dict"].pop("fc1.3.conv.bias")
             ckpt["model_state_dict"].pop("fc1.3.conv.weight")
 
-        self.model.load_state_dict(ckpt["model_state_dict"], strict=False)
-
+        self.student_model.load_state_dict(ckpt["model_state_dict"], strict=False)
+        self.teacher_model.load_state_dict(ckpt["model_state_dict"], strict=False)
         if freeze_encoder:
             for name, params in self.model.named_parameters():
                 if name.startswith(("decoder", "fc1")):
                     params.requires_grad = True
                 else:
                     params.requires_grad = False
-        if not from_binary:
+        if load_optimizer:
             if "optimizer_state_dict" in ckpt and hasattr(self, "optimizer"):
                 log.info(f"Loading checkpoint optimizer_state_dict")
                 self.optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+        if load_scheduler:
             if "scheduler_state_dict" in ckpt and hasattr(self, "scheduler"):
                 log.info(f"Loading checkpoint scheduler_state_dict")
                 self.scheduler.load_state_dict(ckpt["scheduler_state_dict"])

@@ -536,8 +536,13 @@ class RandLANetMixer(RandLANet):
         log.info(f"EMA: {self.ema}")
         # Initialize the projector
 
+    def copy_params(self, student_model):
+        for teacher_param, student_param in zip(
+            self.parameters(), student_model.parameters()
+        ):
+            teacher_param.data = student_param.data.clone()
+
     def update_ema(self, student_model):
-        # FIXME: set EMA value
         for teacher_param, student_param in zip(
             self.parameters(), student_model.parameters()
         ):
@@ -703,13 +708,15 @@ class RandLANetMixer(RandLANet):
         )
         search_tree = KDTree(sub_pc_mix)
 
-        sub_pc_mix, selected_idxs_mix, center_point_mix = self.trans_point_sampler(
+        selected_idxs_mix, center_point_mix = self.trans_point_sampler(
             pc=sub_pc_mix,
             feat=sub_feat_mix,
             label=sub_labels_mix,
             search_tree=search_tree,
             num_points=self.cfg.num_points,
         )
+
+        sub_pc_mix = sub_pc_mix[selected_idxs_mix]
         sub_labels_mix = sub_labels_mix[selected_idxs_mix]
         sub_feat_mix = sub_feat_mix[selected_idxs_mix]
 
