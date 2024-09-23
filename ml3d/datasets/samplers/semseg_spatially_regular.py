@@ -101,14 +101,16 @@ class SemSegSpatiallyRegularSampler(object):
                     self.possibilities[cloud_id][center_id] += 0.001
 
             random.shuffle(idxs)
-            pc = pc[idxs]
-            dists = np.sum(np.square((pc - center_point).astype(np.float32)), axis=1)
+            pc_sub = pc[idxs]
+            dists = np.sum(
+                np.square((pc_sub - center_point).astype(np.float32)), axis=1
+            )
             delta = np.square(1 - dists / np.max(dists))
             self.possibilities[cloud_id][idxs] += delta
             new_min = float(np.min(self.possibilities[cloud_id]))
             self.min_possibilities[cloud_id] = new_min
 
-            return pc, idxs, center_point
+            return idxs, center_point
 
         return _random_centered_gen
 
