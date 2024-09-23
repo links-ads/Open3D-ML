@@ -2,35 +2,46 @@ dataset:
   name: ConcatDataset
   steps_per_epoch_train: 100
   steps_per_epoch_valid: 10
-  test_result_folder: ./logs
-  cache_dir: ./dataset_cache/sensat5
-  class_weights: [579547289, 550856858, 904143863, 340505589, 7088841]
+  test_result_folder: ./test
+  cache_dir: ./dataset_cache/concat2_005
+  class_weights: [4, 1, 3, 1, 1]
   num_classes: 5
-  sampler:
-    name: SemSegRandomClassSampler
+  num_points: 65536
+  # Taxonomy is Ground, Vegetation, Building, Street Element, Water
+  ignored_label_inds:
+    - 0
   use_cache: true 
   datasets:
+    -
+      name: SUMDataset
+      dataset_path: data/datasets/SUM/1.0/SUM_Helsinki_C6_pcl_30
+      train_files: train/*
+      val_files: validate/*
+      test_files: test/*
+      class_map:
+        1: 1
+        2: 2
+        3: 3
+        4: 5
+        5: 4
+        6: 0
     - 
       name: SensatUrban
       dataset_path: data/digitwin/sensatUrban/ply
-      num_points: 65536  
-      sampler:
-        name: SemSegRandomClassSampler
-      # Taxonomy is Ground, Vegetation, Building, Street Element, Water
       class_map:
-        0: 0
-        1: 1
-        2: 2
-        3: 2
-        4: 3
-        5: 0
-        6: 3
-        7: 0
-        8: 3
-        9: 3
-        10: 0
-        11: 3
-        12: 4
+        0: 1
+        1: 2
+        2: 3
+        3: 3
+        4: 0
+        5: 1
+        6: 0
+        7: 1
+        8: 4
+        9: 4
+        10: 1
+        11: 0
+        12: 0
       train_files:
         - train/birmingham_block_10.ply
         - train/birmingham_block_11.ply
@@ -74,6 +85,7 @@ dataset:
         - test/cambridge_block_22.ply
         - test/cambridge_block_16.ply
         - test/cambridge_block_27.ply
+
 model:
   name: RandLANet
   batcher: DefaultBatcher
@@ -81,39 +93,35 @@ model:
   num_neighbors: 16
   num_layers: 5
   num_points: 65536
-  sampler:
-    name: SemSegRandomClassSampler
-    classes: [0, 1, 2, 3, 4]
   num_classes: 5
-  ignored_label_inds: []
+  ignored_label_inds: [0]
   sub_sampling_ratio: [4, 4, 4, 4, 2]
   in_channels: 6
   dim_input: 6
   dim_features: 8
   dim_output: [16, 64, 128, 256, 512]
-  grid_size: 0.2
+  grid_size: 0.05
   augment:
     recenter:
       dim: [0, 1, 2]
     normalize:
       points:
         method: linear
-    rotate:
-      method: "vertical"
-    noise:
-      noise_std: 0.001
-    ChromaticAutoContrast:
-      randomize_blend_factor: true
+    RandomHorizontalFlip:
+      axes: [0, 1]
+    ChromaticJitter:
+      std: 0.01
     HueSaturationTranslation:
       hue_max: 0.5
       saturation_max: 0.2
+ 
 pipeline:
   name: SemanticSegmentation
   optimizer:
     lr: 0.001
   batch_size: 4
   main_log_dir: ./test
-  max_epoch: 200
+  max_epoch: 500
   save_ckpt_freq: 20
   scheduler_gamma: 0.99
   test_batch_size: 1

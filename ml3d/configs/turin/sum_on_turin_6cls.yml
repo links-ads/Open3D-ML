@@ -1,0 +1,16 @@
+name: TurinDataset3D
+cache_dir: ./dataset_cache/sum_on_turin
+dataset_path: data/digitwin/sansalvario_crop
+class_weights: [1,1,1,1,1,1]
+ignored_label_inds:
+- 0
+num_classes: 6
+num_points: 65536
+train_dir: Lidar_consegna
+val_dir: Lidar_consegna
+test_dir: Lidar_consegna
+test_result_folder: ./test
+use_cache: true
+steps_per_epoch_train: 100
+steps_per_epoch_valid: 10
+offset: [396000, 4989500, 0]

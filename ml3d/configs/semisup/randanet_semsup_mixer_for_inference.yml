@@ -117,7 +117,7 @@ pipeline:
   pin_memory: false
   val_batch_size: 4
   summary:
-    record_for: ["valid"]
+    record_for: []
     max_pts:
     use_reference: false
     max_outputs: 1

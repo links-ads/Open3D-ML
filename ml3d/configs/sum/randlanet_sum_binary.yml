@@ -1,0 +1,74 @@
+dataset:
+  name: ConcatDataset
+  steps_per_epoch_train: 100
+  steps_per_epoch_valid: 10
+  test_result_folder: ./test
+  cache_dir: ./dataset_cache/concat_sum_binary
+  class_weights: [4, 1]
+  num_classes: 2
+  sampler:
+    name: SemSegRandomClassSampler
+    classes: [0, 1]
+  num_points: 65536
+  # Taxonomy is Ground, Vegetation, Building, Street Element, Water
+  use_cache: true 
+  datasets:
+    -
+      name: SUMDataset
+      
+      dataset_path: data/datasets/SUM/1.0/SUM_Helsinki_C6_pcl_30
+      train_files: train/*
+      val_files: validate/*
+      test_files: test/*
+      class_map:
+        1: 0
+        2: 0
+        3: 0
+        4: 1
+        5: 0
+        6: 0
+
+model:
+  name: RandLANet
+  batcher: DefaultBatcher
+  ckpt_path: # path/to/your/checkpoint
+  num_neighbors: 16
+  num_layers: 5
+  num_points: 65536
+  num_classes: 2
+  sampler:
+    name: SemSegRandomClassSampler
+    classes: [0, 1]
+  ignored_label_inds: []
+  sub_sampling_ratio: [4, 4, 4, 4, 2]
+  in_channels: 6
+  dim_input: 6
+  dim_features: 8
+  dim_output: [16, 64, 128, 256, 512]
+  grid_size: 0.2
+  augment:
+    recenter:
+      dim: [0, 1, 2]
+    normalize:
+      points:
+        method: linear
+ 
+pipeline:
+  name: SemanticSegmentation
+  optimizer:
+    lr: 0.001
+  batch_size: 4
+  main_log_dir: ./test
+  max_epoch: 200
+  save_ckpt_freq: 20
+  scheduler_gamma: 0.99
+  test_batch_size: 1
+  train_sum_dir: ./test
+  num_workers: 0
+  pin_memory: false
+  val_batch_size: 2
+  summary:
+    record_for: []
+    max_pts:
+    use_reference: false
+    max_outputs: 1
