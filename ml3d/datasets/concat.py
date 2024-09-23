@@ -51,6 +51,7 @@ class ConcatDataset(BaseDataset):
             "num_classes": num_classes,
             "use_cache": use_cache,
             "sampler": kwargs.get("sampler", {"name": "SemSegRandomSampler"}),
+            "experiment": kwargs.get("experiment", None),
         }
         self.datasets = []
         self.class_map = []
