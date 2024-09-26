@@ -481,7 +481,9 @@ class RandLANet(BaseModel):
             updated probabilities
 
         """
+        #self.test_smooth = 0.85
         self.test_smooth = 0.95
+        #self.test_smooth = 0.7
 
         for b in range(results.size()[0]):
 
@@ -490,9 +492,12 @@ class RandLANet(BaseModel):
             probs = probs.cpu().data.numpy()
             inds = inputs["data"]["point_inds"][b]
 
-            test_probs[inds] = (
-                self.test_smooth * test_probs[inds] + (1 - self.test_smooth) * probs
-            )
+            old_probs = test_probs[inds]
+            mask = (old_probs != 0).any(axis=1)
+            test_probs[inds] = np.where(mask[:, None], self.test_smooth * old_probs + (1 - self.test_smooth) * probs, probs)
+            # test_probs[inds] = (
+            #     self.test_smooth * test_probs[inds] + (1 - self.test_smooth) * probs
+            # )
 
         return test_probs
 
