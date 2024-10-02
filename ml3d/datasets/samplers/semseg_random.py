@@ -105,18 +105,24 @@ class SemSegRandomClassSampler(object):
                     "Please provide pc, num_points, search_tree and sampler \
                     for point_sampler in SemSegRandomClassSampler"
                 )
+
             # unique_labels = np.unique(label)
             class_list = list(sampler["classes"])
             while True:
-                random_class = np.random.choice(range(len(class_list)), 1)
+                random_class = np.random.choice(class_list, 1)
                 log.info(f"Sampled class: {random_class}")
                 idx_class = np.where(label == random_class)[0]
                 if len(idx_class) == 0:
                     log.info(f"No points for class {random_class}")
                     class_list.remove(random_class)
-                    continue
+                    if len(class_list) == 0:
+                        center_idx = np.random.choice(len(pc), 1)
+                        break
+                    else:
+                        continue
+                center_idx = np.random.choice(idx_class, 1)
                 break
-            center_idx = np.random.choice(idx_class, 1)
+
             # center_idx = np.random.choice(len(pc), 1)
             center_point = pc[center_idx, :].reshape(1, -1)
 

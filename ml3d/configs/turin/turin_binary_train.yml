@@ -1,0 +1,79 @@
+dataset:
+  name: ConcatDataset
+  steps_per_epoch_train: 100
+  steps_per_epoch_valid: 10
+  test_result_folder: ./test
+  cache_dir: ./dataset_cache/turin_binary
+  class_weights: [1, 1]
+  num_classes: 2
+  ignored_label_inds:
+    - 0
+  sampler:
+    name: SemSegRandomClassSampler
+    classes: [1,2]
+  num_points: 65536
+  # Taxonomy is Water, ground
+  use_cache: true
+  datasets:
+    - 
+      name: TurinDataset3D
+      dataset_path: data/digitwin/sansalvario_crop
+      train_dir: Lidar_binary
+      val_dir: Lidar_binary
+      test_dir: Lidar_binary
+      offset: [396000, 4989500, 0]
+      class_map:
+        0: 0
+        1: 1
+        2: 2
+
+model:
+  name: RandLANet
+  batcher: DefaultBatcher
+  ckpt_path: # path/to/your/checkpoint
+  num_neighbors: 16
+  num_layers: 5
+  num_points: 65536
+  num_classes: 2
+  sampler:
+    name: SemSegRandomClassSampler
+    classes: [1,2]
+  ignored_label_inds: [0]
+  sub_sampling_ratio: [4, 4, 4, 4, 2]
+  in_channels: 6
+  dim_input: 6
+  dim_features: 8
+  dim_output: [16, 64, 128, 256, 512]
+  grid_size: 0.2
+  augment:
+    recenter:
+      dim: [0, 1, 2]
+    normalize:
+      points:
+        method: linear
+    RandomHorizontalFlip:
+      axes: [0, 1]
+    ChromaticJitter:
+      std: 0.01
+    HueSaturationTranslation:
+      hue_max: 0.5
+      saturation_max: 0.2
+pipeline:
+  name: SemanticSegmentation
+  optimizer:
+    lr: 0.0005
+  batch_size: 4
+  main_log_dir: ./test
+  max_epoch: 500
+  save_ckpt_freq: 20
+  scheduler_gamma: 0.99
+  test_batch_size: 1
+  train_sum_dir: ./test
+  num_workers: 0
+  pin_memory: true
+  val_batch_size: 4
+  summary:
+    record_for: []
+    max_pts:
+    use_reference: false
+    max_outputs: 1
