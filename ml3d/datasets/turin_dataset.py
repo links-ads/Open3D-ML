@@ -137,7 +137,7 @@ class TurinDataset3D(Custom3D):
         )
 
     def save_test_result(
-        self, results, attr, save_features=False, save_confidence=True 
+        self, results, attr, save_features=False, save_confidence=True ):
         """Saves the output of a model.
 
         Args:

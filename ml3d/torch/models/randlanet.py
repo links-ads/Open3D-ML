@@ -481,10 +481,9 @@ class RandLANet(BaseModel):
             updated probabilities
 
         """
-        #self.test_smooth = 0.85
+       
         self.test_smooth = 0.95
-        #self.test_smooth = 0.7
-
+      
         for b in range(results.size()[0]):
 
             result = torch.reshape(results[b], (-1, self.cfg.num_classes))
@@ -495,9 +494,7 @@ class RandLANet(BaseModel):
             old_probs = test_probs[inds]
             mask = (old_probs != 0).any(axis=1)
             test_probs[inds] = np.where(mask[:, None], self.test_smooth * old_probs + (1 - self.test_smooth) * probs, probs)
-            # test_probs[inds] = (
-            #     self.test_smooth * test_probs[inds] + (1 - self.test_smooth) * probs
-            # )
+            
 
         return test_probs
 
@@ -575,6 +572,7 @@ class RandLANetMixer(RandLANet):
             results, labels, cfg.num_classes, cfg.ignored_label_inds, device
         )
 
+        #devi sommare due loss diverse ma con diversi pesi cioè che quella con la confidence deve valere meno
         loss = Loss.weighted_CrossEntropyLoss(scores, labels)
 
         return loss, labels, scores
