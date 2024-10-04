@@ -133,15 +133,19 @@ class RandLANet(BaseModel):
         points = np.array(data["point"][:, 0:3], dtype=np.float32)
 
         if "label" not in data or data["label"] is None:
+            #qui puoi mettere le etichette diverse per le confidence puoi o mandare un valore oppure una per tutte le classi
             labels = np.zeros((points.shape[0],), dtype=np.int32)
         else:
             labels = np.array(data["label"], dtype=np.int32).reshape((-1,))
 
+       
         if "feat" not in data or data["feat"] is None:
             feat = None
         else:
             feat = np.array(data["feat"], dtype=np.float32)
-
+        
+        #qui devi filtrare le confidence
+        
         split = attr["split"]
         data = dict()
 
