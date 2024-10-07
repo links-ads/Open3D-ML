@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 from argparse import ArgumentParser
+from matplotlib.ticker import FuncFormatter
 
 def distribution_confidence(file: Path, output_dir: Path):
     
@@ -20,6 +21,13 @@ def distribution_confidence(file: Path, output_dir: Path):
     
     os.makedirs(output_dir, exist_ok=True)
     sns.set_theme(style='whitegrid')
+    
+    def y_formatter(x, pos):
+        if x >= 1e6:
+            return f'{x/1e6:.1f} x 10e6'
+        else:
+            return f'{int(x)}'
+    
     for label in unique_labels:
       
         label_mask = (labels == label)
@@ -30,11 +38,12 @@ def distribution_confidence(file: Path, output_dir: Path):
         
        
         plt.figure(figsize=(10, 6))
-        sns.histplot(label_confidence, bins=30, kde=True, color='orange', label=f'Class {label}')
+        sns.histplot(label_confidence, bins=30, kde=True, color='orange', label=f'Class {label}',stat='count')
         plt.axvline(mean_confidence, color='red', linestyle='dashed', linewidth=1)
         plt.title(f'Distribution of Confidence for Class {label}', fontsize=15)
         plt.xlabel('Confidence', fontsize=12)
-        plt.ylabel('Frequency', fontsize=12)
+        plt.ylabel('Number of points', fontsize=12)
+        plt.gca().yaxis.set_major_formatter(FuncFormatter(y_formatter))
         plt.legend()
         
         

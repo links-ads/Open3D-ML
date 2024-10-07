@@ -46,6 +46,7 @@ class TurinDataset3DSplit(ABC):
     def get_data(self, idx):
         pc_path = self.path_list[idx]
         data = lp.read(pc_path)
+        
         points = np.concatenate(
             [
                 np.expand_dims(data.x, axis=1),
@@ -54,7 +55,9 @@ class TurinDataset3DSplit(ABC):
             ],
             axis=1,
         )
+        
         points = points * self.scale - self.offset
+        
         feat = np.concatenate(
             [
                 np.expand_dims(data.red, axis=1),
@@ -64,12 +67,26 @@ class TurinDataset3DSplit(ABC):
             axis=1,
         )
         feat = (feat >> 8).astype(np.float32)
+        
+        
+        
         if self.split != "test":
+            confidence = np.array(data.confidence, dtype=np.float32)
             labels = np.array(data.classification, dtype=np.int32)
+            data = {"point": points,
+                "feat": feat,
+                "label": labels,
+                "confidence": confidence}
         else:
+          
             labels = np.zeros((points.shape[0]), dtype=np.int32)
-
-        data = {"point": points, "feat": feat, "label": labels}
+            data ={
+                "point": points,
+                "feat": feat,
+                "label": labels,
+            }
+            
+       
 
         return data
 
@@ -183,14 +200,20 @@ class TurinDataset3D(Custom3D):
             log.info(f"Predicted scores: {conf}")
             conf = np.max(conf, axis=-1)
             log.info(f"Confidence: {conf}")
-            las.add_extra_dim(
-                lp.ExtraBytesParams(
-                    name="confidence",
-                    type=np.float32,
-                    description="Prediction confidence",
+            
+            #controlla se esiste già il campo confidence se esiste lo sovrascrive e basta
+            confidence_exists = any(dim.name == 'confidence' for dim in las.point_format.extra_dimensions)
+            if confidence_exists:
+                las.confidence = conf
+            else:
+                las.add_extra_dim(
+                    lp.ExtraBytesParams(
+                        name="confidence",
+                        type=np.float32,
+                        description="Prediction confidence",
+                    )
                 )
-            )
-            las.confidence = conf
+                las.confidence = conf
 
         store_path = os.path.join(path, name + "." + self.file_format)
         las.write(store_path)

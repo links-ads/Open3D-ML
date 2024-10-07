@@ -20,6 +20,7 @@ class SemSegLoss(object):
             self.class_weights = tf.convert_to_tensor(weights, dtype=tf.float32)
 
     def weighted_CrossEntropyLoss(self, logits, labels):
+        #devi passare una var boolean per dire se considerare la confidence o no
         if self.class_weights is None:
             return tf.reduce_mean(
                 tf.nn.sparse_softmax_cross_entropy_with_logits(labels, logits)

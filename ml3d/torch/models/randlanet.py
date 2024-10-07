@@ -57,6 +57,8 @@ class RandLANet(BaseModel):
         ckpt_path=None,
         augment={},
         return_features=False,
+        use_confidence=False,
+        confidence={},
         **kwargs,
     ):
 
@@ -75,6 +77,7 @@ class RandLANet(BaseModel):
             batcher=batcher,
             ckpt_path=ckpt_path,
             augment=augment,
+            use_confidence=use_confidence,
             **kwargs,
         )
         cfg = self.cfg
@@ -126,6 +129,22 @@ class RandLANet(BaseModel):
             nn.Dropout(0.5),
             SharedMLP(32, cfg.num_classes, bn=False),
         )
+        self.use_confidence = use_confidence
+        
+        if self.use_confidence==True:
+            if isinstance(confidence,(int,float)):
+                self.confidence = {i: confidence for i in range(num_classes)}
+            elif isinstance(confidence,(dict)):
+                self.confidence = confidence
+                for i in range(num_classes):
+                    if i not in self.confidence:
+                        #default value if confidence is not provided for that class
+                        self.confidence[i] = 0.85 
+            else:
+                raise ValueError("confidence must be a number or a dictionary")
+            print(f"confidence for each class : {self.confidence}")
+            
+            
 
     def preprocess(self, data, attr):
         cfg = self.cfg
@@ -144,10 +163,20 @@ class RandLANet(BaseModel):
         else:
             feat = np.array(data["feat"], dtype=np.float32)
         
-        #qui devi filtrare le confidence
-        
+        if "confidence" in data and data["confidence"] is not None and self.use_confidence!=False :
+            confidence=np.array(data["confidence"],dtype=np.float32)
+            filtered_indices=[]
+            for label in np.unique(labels):
+                label_indices=np.where(labels==label)[0]
+                label_confidence=confidence[label_indices]
+                confidence_indices=label_indices[label_confidence>self.confidence[label]]
+                filtered_indices.append(confidence_indices)
+            points=points[np.concatenate(filtered_indices)]
+            labels=labels[np.concatenate(filtered_indices)]
+            
         split = attr["split"]
         data = dict()
+        
 
         if feat is None:
             sub_points, sub_labels = DataProcessing.grid_subsampling(
