@@ -163,18 +163,21 @@ class RandLANet(BaseModel):
         else:
             feat = np.array(data["feat"], dtype=np.float32)
         
+        #metti label a 0 se non ha quella confidence
         if "confidence" in data and data["confidence"] is not None and self.use_confidence!=False :
             confidence=np.array(data["confidence"],dtype=np.float32)
             filtered_indices=[]
+            all_filtered_indices = np.zeros(labels.shape, dtype=bool)  
+
             for label in np.unique(labels):
                 label_indices=np.where(labels==label)[0]
                 label_confidence=confidence[label_indices]
-                confidence_indices=label_indices[label_confidence>self.confidence[label]]
+                confidence_indices=label_indices[label_confidence>=self.confidence[label]]
                 filtered_indices.append(confidence_indices)
-            points=points[np.concatenate(filtered_indices)]
-            labels=labels[np.concatenate(filtered_indices)]
-            if feat is not None:
-                feat=feat[np.concatenate(filtered_indices)]
+                all_filtered_indices[confidence_indices] = True  
+            
+            labels[~all_filtered_indices] = 0
+            
             
         split = attr["split"]
         data = dict()
