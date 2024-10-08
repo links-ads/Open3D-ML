@@ -173,6 +173,8 @@ class RandLANet(BaseModel):
                 filtered_indices.append(confidence_indices)
             points=points[np.concatenate(filtered_indices)]
             labels=labels[np.concatenate(filtered_indices)]
+            if feat is not None:
+                feat=feat[np.concatenate(filtered_indices)]
             
         split = attr["split"]
         data = dict()
