@@ -1,6 +1,6 @@
 import tensorflow as tf
 from ....datasets.utils import DataProcessing as DP
-
+import numpy as np
 
 class SemSegLoss(object):
     """Loss functions for semantic segmentation."""
@@ -20,7 +20,7 @@ class SemSegLoss(object):
             self.class_weights = tf.convert_to_tensor(weights, dtype=tf.float32)
 
     def weighted_CrossEntropyLoss(self, logits, labels):
-        #devi passare una var boolean per dire se considerare la confidence o no
+        
         if self.class_weights is None:
             return tf.reduce_mean(
                 tf.nn.sparse_softmax_cross_entropy_with_logits(labels, logits)
@@ -36,6 +36,8 @@ class SemSegLoss(object):
             output_loss = tf.reduce_mean(weighted_losses)
 
             return output_loss
+    
+
 
     def filter_valid_label(self, scores, labels):
         """Filter out invalid points."""
@@ -69,3 +71,5 @@ class SemSegLoss(object):
         valid_labels = tf.gather(reducing_list, valid_labels_init)
 
         return valid_logits, valid_labels
+
+

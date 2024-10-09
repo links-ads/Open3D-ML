@@ -133,11 +133,11 @@ class RandLANet(BaseModel):
         
         if self.use_confidence==True:
             if isinstance(confidence,(int,float)):
-                self.confidence = {i: confidence for i in range(num_classes)}
+                self.confidence = {i: confidence for i in range(num_classes+1)}
             elif isinstance(confidence,(dict)):
                 self.confidence = confidence
                 for i in range(num_classes):
-                    if i not in self.confidence:
+                    if i not in self.confidence and i != 0:
                         #default value if confidence is not provided for that class
                         self.confidence[i] = 0.85 
             else:
@@ -177,26 +177,40 @@ class RandLANet(BaseModel):
                 all_filtered_indices[confidence_indices] = True  
             
             labels[~all_filtered_indices] = 0
-            
+        
+            if feat is not None:
+                confidence = confidence.reshape(-1, 1)  
+                feat = np.concatenate((feat, confidence), axis=1)  
+        else:
+            #per ora se non c'è la confidence per esempio per gli altri dataset che non sono torino mettiamo tutti 1
+             if feat is not None:
+                confidence = np.ones((feat.shape[0], 1), dtype=np.float32)  
+                feat = np.concatenate((feat, confidence), axis=1) 
             
         split = attr["split"]
         data = dict()
         
+        #concatena alle features la confidence
 
         if feat is None:
             sub_points, sub_labels = DataProcessing.grid_subsampling(
                 points, labels=labels, grid_size=cfg.grid_size
             )
             sub_feat = None
+            sub_confidence = None
         else:
             sub_points, sub_feat, sub_labels = DataProcessing.grid_subsampling(
                 points, features=feat, labels=labels, grid_size=cfg.grid_size
             )
+            sub_confidence=sub_feat[:, -1]
+            sub_feat=sub_feat[:, :3]
+            
 
         search_tree = KDTree(sub_points)
 
         data["point"] = sub_points
         data["feat"] = sub_feat
+        data["confidence"]=sub_confidence
         data["label"] = sub_labels
         data["search_tree"] = search_tree
 
@@ -225,6 +239,7 @@ class RandLANet(BaseModel):
         label = data["label"]
         feat = data["feat"] if data["feat"] is not None else None
         tree = data["search_tree"]
+        confidence=data["confidence"] if "confidence" in data else None
 
         selected_idxs, center_point = self.trans_point_sampler(
             pc=pc,
@@ -233,6 +248,7 @@ class RandLANet(BaseModel):
             search_tree=tree,
             num_points=self.cfg.num_points,
             sampler=self.cfg.get("sampler", None),
+            confidence=confidence,
         )  # Points are sampled from the whole pointcloud (n_points,3)
         pc_sub = pc[selected_idxs]
         pc = pc_sub.copy()
@@ -241,7 +257,11 @@ class RandLANet(BaseModel):
         if feat is not None:
             feat_sub = feat[selected_idxs]
             feat = feat_sub.copy()
+        if confidence is not None:
+            confidence_sub = confidence[selected_idxs]
+            confidence = confidence_sub.copy()
 
+       
         augment_cfg = self.cfg.get("augment", {}).copy()
         val_augment_cfg = {}
         if "recenter" in augment_cfg:
@@ -289,6 +309,7 @@ class RandLANet(BaseModel):
         inputs["sub_idx"] = input_pools
         inputs["interp_idx"] = input_up_samples
         inputs["features"] = feat
+        inputs["confidence"]=confidence
         inputs["point_inds"] = selected_idxs
         inputs["labels"] = label.astype(np.int64)
 
@@ -421,7 +442,7 @@ class RandLANet(BaseModel):
         )
         return optimizer, scheduler
 
-    def get_loss(self, Loss, results, inputs, device):
+    def get_loss(self, Loss, results, inputs, device,weighted_confidence=False):
         """Calculate the loss on output of the model.
 
         Args:
@@ -435,13 +456,17 @@ class RandLANet(BaseModel):
 
         """
         cfg = self.cfg
+        #lo fai per tutti perche per gli altri dataset che non hanno confidence viene posta di default a 0
         labels = inputs["data"]["labels"]
-
-        scores, labels = filter_valid_label(
-            results, labels, cfg.num_classes, cfg.ignored_label_inds, device
-        )
-
-        loss = Loss.weighted_CrossEntropyLoss(scores, labels)
+        confidence=inputs["data"]["confidence"]
+        scores, labels,confidence = filter_valid_label(
+                results, labels,confidence, cfg.num_classes, cfg.ignored_label_inds, device)
+        
+        if weighted_confidence:
+            loss = Loss.weighted_confidence_CrossEntropyLoss(scores, labels,confidence,self.confidence)
+            
+        else:
+            loss = Loss.weighted_CrossEntropyLoss(scores, labels)
 
         return loss, labels, scores
 

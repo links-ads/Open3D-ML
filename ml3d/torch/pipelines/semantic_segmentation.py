@@ -439,8 +439,9 @@ class SemanticSegmentation(BasePipeline):
                 self.optimizer.zero_grad()
 
                 results = model(inputs["data"])
+                #TODO mettere un flag per decidere che loss deve usare
                 loss, gt_labels, predict_scores = model.get_loss(
-                    Loss, results, inputs, device
+                    Loss, results, inputs, device, weighted_confidence=True
                 )
 
                 if predict_scores.size()[-1] == 0:
