@@ -59,26 +59,11 @@ class SemSegLoss(object):
     def weighted_confidence_CrossEntropyLoss(self, logits, labels, confidence, all_confidence):
    
         unweighted_losses = F.cross_entropy(logits, labels, reduction='none')
-        weighted_confidence = torch.zeros_like(confidence, dtype=torch.float32)
+      
         
-    
-        for i in range(len(confidence)):
-            label = labels[i].item()
-            if label == 0:
-                continue  
-            if label in all_confidence:
-                confidence_value = all_confidence[label]
-                #TODO numero passato da parametro
-                points=pt(confidence_value, 1, 0.2, 1)
-                #puoi usare una funzione lineare o esponenziale
-                w_confidence = points.calculate_function(confidence[i],linear = True)
-                weighted_confidence[i] = w_confidence
-            else:
-                raise KeyError(f"Label {label} don't have a confidence value")
-   
-        weighted_confidence_losses = unweighted_losses * weighted_confidence
+        weighted_confidence_losses = unweighted_losses * confidence
         
-
+       
         if self.weights is None:
             output_loss = torch.mean(weighted_confidence_losses)
         else:
@@ -91,6 +76,23 @@ class SemSegLoss(object):
             output_loss = torch.mean(weighted_losses)
 
         return output_loss
+
+ # for i in range(len(confidence)):
+        #     label = labels[i].item()
+        #     if label == 0:
+        #         continue  
+        #     if label in all_confidence:
+        #         confidence_value = all_confidence[label]
+        #         #TODO numero passato da parametro
+        #         points=pt(confidence_value, 1, 0.2, 1)
+        #         #puoi usare una funzione lineare o esponenziale
+        #         w_confidence = points.calculate_function(confidence[i],linear = True)
+        #         weighted_confidence[i] = w_confidence
+        #     else:
+        #         raise KeyError(f"Label {label} don't have a confidence value")
+   
+        # weighted_confidence_losses = unweighted_losses * weighted_confidence
+        
 
 class SoftmaxEntropyLoss(nn.Module):
 
