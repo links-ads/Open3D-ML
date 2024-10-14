@@ -463,11 +463,7 @@ class RandLANet(BaseModel):
                 results, labels,confidence, cfg.num_classes, cfg.ignored_label_inds, device)
         
         if weighted_confidence:
-            #scores=scores*confidence
-            loss = Loss.weighted_CrossEntropyLoss(scores, labels)
-            loss=loss*confidence
-            loss=torch.mean(loss)
-            #loss = Loss.weighted_confidence_CrossEntropyLoss(scores, labels,confidence,self.confidence)
+            loss = Loss.weighted_confidence_CrossEntropyLoss(scores, labels,confidence,self.confidence)
             
         else:
             loss = Loss.weighted_CrossEntropyLoss(scores, labels)
