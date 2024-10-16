@@ -96,6 +96,7 @@ class SemanticSegmentation(BasePipeline):
         main_log_dir="./logs/",
         device="cuda",
         split="train",
+        end_threshold=0.5,
         **kwargs,
     ):
 
@@ -116,8 +117,10 @@ class SemanticSegmentation(BasePipeline):
             main_log_dir=main_log_dir,
             device=device,
             split=split,
+            end_threshold=end_threshold,
             **kwargs,
         )
+        self.end_threshold = end_threshold
 
     def run_inference(self, data):
         """Run inference on given data.
@@ -282,7 +285,7 @@ class SemanticSegmentation(BasePipeline):
     def update_tests(self, sampler, inputs, results):
         """Update tests using sampler, inputs, and results."""
         split = sampler.split
-        end_threshold = 0.5
+        #end_threshold = 0.5
         if self.curr_cloud_id != sampler.cloud_id:
             self.curr_cloud_id = sampler.cloud_id
             num_points = sampler.possibilities[sampler.cloud_id].shape[0]
@@ -300,10 +303,10 @@ class SemanticSegmentation(BasePipeline):
 
         this_possiblility = sampler.possibilities[sampler.cloud_id]
         self.pbar.update(
-            this_possiblility[this_possiblility > end_threshold].shape[0]
+            this_possiblility[this_possiblility > self.end_threshold].shape[0]
             - self.pbar_update
         )
-        self.pbar_update = this_possiblility[this_possiblility > end_threshold].shape[0]
+        self.pbar_update = this_possiblility[this_possiblility > self.end_threshold].shape[0]
         self.test_probs[self.curr_cloud_id] = self.model.update_probs(
             inputs,
             results,
@@ -312,7 +315,7 @@ class SemanticSegmentation(BasePipeline):
 
         if (
             split in ["test"]
-            and this_possiblility[this_possiblility > end_threshold].shape[0]
+            and this_possiblility[this_possiblility > self.end_threshold].shape[0]
             == this_possiblility.shape[0]
         ):
 
