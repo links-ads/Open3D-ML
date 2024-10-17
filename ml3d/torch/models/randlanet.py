@@ -59,6 +59,8 @@ class RandLANet(BaseModel):
         return_features=False,
         use_confidence=False,
         confidence={},
+        weighted_confidence=False,
+        use_max_confidence=False,
         **kwargs,
     ):
 
@@ -78,11 +80,16 @@ class RandLANet(BaseModel):
             ckpt_path=ckpt_path,
             augment=augment,
             use_confidence=use_confidence,
+            confidence=confidence,
+            weighted_confidence=weighted_confidence,
+            use_max_confidence=use_max_confidence,
             **kwargs,
         )
         cfg = self.cfg
         self.return_features = return_features
         self.augmenter = SemsegAugmentation(cfg.augment, seed=self.rng)
+        self.weighted_confidence=weighted_confidence
+        self.use_max_confidence=use_max_confidence
 
         self.fc0 = nn.Linear(cfg.in_channels, cfg.dim_features)
         self.bn0 = nn.BatchNorm2d(cfg.dim_features, eps=1e-6, momentum=0.01)
@@ -442,7 +449,7 @@ class RandLANet(BaseModel):
         )
         return optimizer, scheduler
 
-    def get_loss(self, Loss, results, inputs, device,weighted_confidence=False):
+    def get_loss(self, Loss, results, inputs, device):
         """Calculate the loss on output of the model.
 
         Args:
@@ -462,7 +469,7 @@ class RandLANet(BaseModel):
         scores, labels,confidence = filter_valid_label(
                 results, labels,confidence, cfg.num_classes, cfg.ignored_label_inds, device)
         
-        if weighted_confidence:
+        if self.weighted_confidence:
             loss = Loss.weighted_confidence_CrossEntropyLoss(scores, labels,confidence,self.confidence)
             
         else:
@@ -553,10 +560,14 @@ class RandLANet(BaseModel):
             probs = torch.nn.functional.softmax(result, dim=-1)
             probs = probs.cpu().data.numpy()
             inds = inputs["data"]["point_inds"][b]
-
             old_probs = test_probs[inds]
             mask = (old_probs != 0).any(axis=1)
-            test_probs[inds] = np.where(mask[:, None], self.test_smooth * old_probs + (1 - self.test_smooth) * probs, probs)
+            
+            if self.use_max_confidence:
+                new_probs = np.where(mask[:, None], np.maximum(self.test_smooth * old_probs + (1 - self.test_smooth) * probs, old_probs), probs)
+                test_probs[inds] = new_probs
+            else:
+                test_probs[inds] = np.where(mask[:, None], self.test_smooth * old_probs + (1 - self.test_smooth) * probs, probs)
             
 
         return test_probs
