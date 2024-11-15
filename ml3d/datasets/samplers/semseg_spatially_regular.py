@@ -46,7 +46,8 @@ class SemSegSpatiallyRegularSampler(object):
         def gen_test():
             curr_could_id = 0
             while curr_could_id < self.length:
-                if self.min_possibilities[curr_could_id] > 0.7:
+                #TODO how pass value to end_threshold
+                if self.min_possibilities[curr_could_id] > 0.8:
                     curr_could_id = curr_could_id + 1
                     continue
                 self.cloud_id = curr_could_id

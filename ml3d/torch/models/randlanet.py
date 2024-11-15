@@ -170,6 +170,16 @@ class RandLANet(BaseModel):
         else:
             feat = np.array(data["feat"], dtype=np.float32)
         
+         
+        if "intensity" in data and data["intensity"] is not None:
+            intensity=np.array(data["intensity"],dtype=np.float32)
+            
+            intensity = np.log1p(intensity)
+            
+            if feat is not None:
+                intensity = intensity.reshape(-1, 1)  
+                feat = np.concatenate((feat, intensity), axis=1)
+        
         #metti label a 0 se non ha quella confidence
         if "confidence" in data and data["confidence"] is not None and self.use_confidence!=False :
             confidence=np.array(data["confidence"],dtype=np.float32)
@@ -193,7 +203,8 @@ class RandLANet(BaseModel):
              if feat is not None:
                 confidence = np.ones((feat.shape[0], 1), dtype=np.float32)  
                 feat = np.concatenate((feat, confidence), axis=1) 
-            
+       
+        
         split = attr["split"]
         data = dict()
         
@@ -210,7 +221,7 @@ class RandLANet(BaseModel):
                 points, features=feat, labels=labels, grid_size=cfg.grid_size
             )
             sub_confidence=sub_feat[:, -1]
-            sub_feat=sub_feat[:, :3]
+            sub_feat=sub_feat[:, :4]
             
 
         search_tree = KDTree(sub_points)

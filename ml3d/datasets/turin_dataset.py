@@ -73,10 +73,12 @@ class TurinDataset3DSplit(ABC):
         if self.split != "test":
             confidence = np.array(data.confidence, dtype=np.float32)
             labels = np.array(data.classification, dtype=np.int32)
+            intensity = np.array(data.intensity, dtype=np.float32)
             data = {"point": points,
                 "feat": feat,
                 "label": labels,
-                "confidence": confidence}
+                "confidence": confidence,
+                "intensity": intensity}
         else:
           
             labels = np.zeros((points.shape[0]), dtype=np.int32)
