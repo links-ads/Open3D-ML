@@ -171,7 +171,7 @@ class RandLANet(BaseModel):
             feat = np.array(data["feat"], dtype=np.float32)
         
          
-        if "intensity" in data and data["intensity"] is not None:
+        if "intensity" in data is not None:
             intensity=np.array(data["intensity"],dtype=np.float32)
             
             intensity = np.log1p(intensity)
@@ -181,19 +181,20 @@ class RandLANet(BaseModel):
                 feat = np.concatenate((feat, intensity), axis=1)
         
         #metti label a 0 se non ha quella confidence
-        if "confidence" in data and data["confidence"] is not None and self.use_confidence!=False :
+        if "confidence" in data or data["confidence"] is not None and self.use_confidence!=False :
             confidence=np.array(data["confidence"],dtype=np.float32)
-            filtered_indices=[]
-            all_filtered_indices = np.zeros(labels.shape, dtype=bool)  
+            if self.use_confidence==True:
+                filtered_indices=[]
+                all_filtered_indices = np.zeros(labels.shape, dtype=bool)  
 
-            for label in np.unique(labels):
-                label_indices=np.where(labels==label)[0]
-                label_confidence=confidence[label_indices]
-                confidence_indices=label_indices[label_confidence>=self.confidence[label]]
-                filtered_indices.append(confidence_indices)
-                all_filtered_indices[confidence_indices] = True  
+                for label in np.unique(labels):
+                    label_indices=np.where(labels==label)[0]
+                    label_confidence=confidence[label_indices]
+                    confidence_indices=label_indices[label_confidence>=self.confidence[label]]
+                    filtered_indices.append(confidence_indices)
+                    all_filtered_indices[confidence_indices] = True  
             
-            labels[~all_filtered_indices] = 0
+                labels[~all_filtered_indices] = 0
         
             if feat is not None:
                 confidence = confidence.reshape(-1, 1)  
@@ -206,7 +207,7 @@ class RandLANet(BaseModel):
        
         
         split = attr["split"]
-        data = dict()
+       
         
         #concatena alle features la confidence
 
@@ -221,9 +222,13 @@ class RandLANet(BaseModel):
                 points, features=feat, labels=labels, grid_size=cfg.grid_size
             )
             sub_confidence=sub_feat[:, -1]
-            sub_feat=sub_feat[:, :4]
+            #sub_feat=sub_feat[:, :4]
+            if "intensity" in data is not None:
+                sub_feat=sub_feat[:, :4]
+            else:
+                sub_feat=sub_feat[:, :3]
             
-
+        data = dict()
         search_tree = KDTree(sub_points)
 
         data["point"] = sub_points
