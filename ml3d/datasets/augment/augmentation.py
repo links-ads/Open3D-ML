@@ -215,7 +215,7 @@ class SemsegAugmentation(Augmentation):
 
         return pc
 
-    def ChromaticAutoContrast(self, feats, cfg):
+    def ChromaticAutoContrast(self, feats, cfg=None):
         """Improve contrast for RGB features.
 
         Args:
@@ -223,6 +223,8 @@ class SemsegAugmentation(Augmentation):
             cfg: configuration dict.
 
         """
+        if cfg is None:
+            cfg = {}
         randomize_blend_factor = cfg.get("randomize_blend_factor", True)
         blend_factor = cfg.get("blend_factor", 0.5)
         prob = cfg.get("prob", 0.2)
@@ -248,7 +250,7 @@ class SemsegAugmentation(Augmentation):
 
         return feats
 
-    def ChromaticTranslation(self, feats, cfg):
+    def ChromaticTranslation(self, feats, cfg=None):
         """Adds a small translation vector to features.
 
         Args:
@@ -256,13 +258,15 @@ class SemsegAugmentation(Augmentation):
             cfg: configuration dict.
 
         """
+        if cfg is None:
+            cfg = {}
         trans_range_ratio = cfg.get("trans_range_ratio", 0.1)
         if self.rng.random() < 0.95:
             tr = (self.rng.random((1, 3)) - 0.5) * 255 * 2 * trans_range_ratio
             feats[:, :3] = np.clip(tr + feats[:, :3], 0, 255)
         return feats
 
-    def ChromaticJitter(self, feats, cfg):
+    def ChromaticJitter(self, feats, cfg=None):
         """Adds a small noise jitter to features.
 
         Args:
@@ -270,6 +274,8 @@ class SemsegAugmentation(Augmentation):
             cfg: configuration dict.
 
         """
+        if cfg is None:
+            cfg = {}
         std = cfg.get("std", 0.01)
         if self.rng.random() < 0.95:
             noise = self.rng.standard_normal((feats.shape[0], 3))
@@ -348,7 +354,7 @@ class SemsegAugmentation(Augmentation):
         return rgb.astype("uint8")
 
     @staticmethod
-    def HueSaturationTranslation(feat, cfg):
+    def HueSaturationTranslation(feat, cfg=None):
         """Adds small noise to hue and saturation.
 
         Args:
@@ -356,6 +362,8 @@ class SemsegAugmentation(Augmentation):
             cfg: config dict with keys('hue_max', and 'saturation_max').
 
         """
+        if cfg is None:
+            cfg = {}
         hue_max = cfg.get("hue_max", 0.5)
         saturation_max = cfg.get("saturation_max", 0.2)
 
