@@ -8,6 +8,9 @@ from .customdataset import Custom3D
 from .semantic3d import Semantic3D
 from .semsup_dataset import SemSupDataset
 from .sensat import SensatUrban
+from .stpls3d import STPLS3D
+from .swiss3d import Swiss3D
+from .hessigheim import HessigheimDataset
 from .delft_sum import SUMDataset
 from .turin_dataset import TurinDataset3D
 from .concat import ConcatDataset
@@ -35,8 +38,11 @@ __all__ = [
     "S3DIS",
     "Toronto3D",
     "ParisLille3D",
+    "HessigheimDataset",
     "Semantic3D",
     "SensatUrban",
+    "STPLS3D",
+    "Swiss3D",
     "ConcatDataset",
     "SUMDataset",
     "TurinDataset3D",

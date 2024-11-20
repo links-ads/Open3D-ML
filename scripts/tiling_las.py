@@ -2,11 +2,21 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 import laspy as lp
+import numpy as np
 
 
 def tile_las(file: Path, output_folder: Path, tile_size: int):
     # Read the file
     data = lp.read(str(file))
+    data.add_extra_dim(
+        lp.ExtraBytesParams(
+            name="tile_id",
+            type=np.int32,
+            description="Tile index",
+        )
+    )
+    data.tile_id = np.zeros(len(data.points), dtype=np.int32)
+
     x_min, x_max = data.header.x_min, data.header.x_max
     y_min, y_max = data.header.y_min, data.header.y_max
 
@@ -18,6 +28,9 @@ def tile_las(file: Path, output_folder: Path, tile_size: int):
 
     for i in range(tile_size):
         for j in range(tile_size):
+
+            tile_id = i * tile_size + j
+
             x_min_tile = x_min + i * x_step
             x_max_tile = x_min + (i + 1) * x_step
             y_min_tile = y_min + j * y_step
@@ -44,8 +57,9 @@ def tile_las(file: Path, output_folder: Path, tile_size: int):
             new_file.header.z_max = points["z"].max()
             new_file.header.z_min = points["z"].min()
             new_file.header.point_records_count = len(points)
+            new_file.tile_id = np.ones(len(points), dtype=np.int32) * tile_id
 
-            new_file.write(str(output_folder / f"{file.stem}_{i}_{j}.las"))
+            new_file.write(str(output_folder / f"{file.stem}_{tile_id}.{args.EXT}"))
     return
 
 
@@ -58,6 +72,8 @@ parser.add_argument(
     "--tile", type=int, default=3, help="Number of tile per dimension", dest="TILE"
 )
 parser.add_argument("--out", type=Path, required=True, help="Output folder", dest="OUT")
+
+parser.add_argument("-e", type=str, default="las", help="File extension", dest="EXT")
 
 args = parser.parse_args()
 
