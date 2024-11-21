@@ -61,6 +61,7 @@ class RandLANet(BaseModel):
         confidence={},
         weighted_confidence=False,
         use_max_confidence=False,
+        use_intensity=False,
         **kwargs,
     ):
 
@@ -83,6 +84,7 @@ class RandLANet(BaseModel):
             confidence=confidence,
             weighted_confidence=weighted_confidence,
             use_max_confidence=use_max_confidence,
+            use_intensity=use_intensity,
             **kwargs,
         )
         cfg = self.cfg
@@ -90,6 +92,7 @@ class RandLANet(BaseModel):
         self.augmenter = SemsegAugmentation(cfg.augment, seed=self.rng)
         self.weighted_confidence=weighted_confidence
         self.use_max_confidence=use_max_confidence
+        self.use_intensity=use_intensity
 
         self.fc0 = nn.Linear(cfg.in_channels, cfg.dim_features)
         self.bn0 = nn.BatchNorm2d(cfg.dim_features, eps=1e-6, momentum=0.01)
@@ -170,61 +173,62 @@ class RandLANet(BaseModel):
         else:
             feat = np.array(data["feat"], dtype=np.float32)
         
-         
-        if "intensity" in data is not None:
-            intensity=np.array(data["intensity"],dtype=np.float32)
+        if self.use_intensity==True:
+            if "intensity" in data is not None:
+                intensity=np.array(data["intensity"],dtype=np.float32)
             
-            intensity = np.log1p(intensity)
+                intensity = np.log1p(intensity)
             
-            if feat is not None:
-                intensity = intensity.reshape(-1, 1)  
-                feat = np.concatenate((feat, intensity), axis=1)
+                if feat is not None:
+                    intensity = intensity.reshape(-1, 1)  
+                    feat = np.concatenate((feat, intensity), axis=1)
         
         #metti label a 0 se non ha quella confidence
         # if "confidence" in data or data["confidence"] is not None and self.use_confidence!=False :
-        if "confidence" in data or data["confidence"] is not None :
-            confidence=np.array(data["confidence"],dtype=np.float32)
-            if self.use_confidence==True:
-                filtered_indices=[]
-                all_filtered_indices = np.zeros(labels.shape, dtype=bool)  
+        if self.use_confidence==True:
+            if "confidence" in data or data["confidence"] is not None :
+                confidence=np.array(data["confidence"],dtype=np.float32)
+                if self.use_confidence==True:
+                    filtered_indices=[]
+                    all_filtered_indices = np.zeros(labels.shape, dtype=bool)  
 
-                for label in np.unique(labels):
-                    label_indices=np.where(labels==label)[0]
-                    label_confidence=confidence[label_indices]
-                    confidence_indices=label_indices[label_confidence>=self.confidence[label]]
-                    filtered_indices.append(confidence_indices)
-                    all_filtered_indices[confidence_indices] = True  
+                    for label in np.unique(labels):
+                        label_indices=np.where(labels==label)[0]
+                        label_confidence=confidence[label_indices]
+                        confidence_indices=label_indices[label_confidence>=self.confidence[label]]
+                        filtered_indices.append(confidence_indices)
+                        all_filtered_indices[confidence_indices] = True  
             
-                labels[~all_filtered_indices] = 0
+                    labels[~all_filtered_indices] = 0
         
-            if feat is not None:
-                confidence = confidence.reshape(-1, 1)  
-                feat = np.concatenate((feat, confidence), axis=1)  
-        else:
+                if feat is not None:
+                    confidence = confidence.reshape(-1, 1)  
+                    feat = np.concatenate((feat, confidence), axis=1)  
+            else:
             #per ora se non c'è la confidence per esempio per gli altri dataset che non sono torino mettiamo tutti 1
-             if feat is not None:
-                confidence = np.ones((feat.shape[0], 1), dtype=np.float32)  
-                feat = np.concatenate((feat, confidence), axis=1) 
+                if feat is not None:
+                    confidence = np.ones((feat.shape[0], 1), dtype=np.float32)  
+                    feat = np.concatenate((feat, confidence), axis=1) 
        
         
         split = attr["split"]
        
         
         #concatena alle features la confidence
-
+        sub_confidence = None
+        
         if feat is None:
             sub_points, sub_labels = DataProcessing.grid_subsampling(
                 points, labels=labels, grid_size=cfg.grid_size
             )
             sub_feat = None
-            sub_confidence = None
         else:
             sub_points, sub_feat, sub_labels = DataProcessing.grid_subsampling(
                 points, features=feat, labels=labels, grid_size=cfg.grid_size
             )
-            sub_confidence=sub_feat[:, -1]
+            if self.use_confidence==True: sub_confidence=sub_feat[:, -1]
             #sub_feat=sub_feat[:, :4]
-            if "intensity" in data is not None:
+            if "intensity" in data is not None and self.use_intensity==True:
                 sub_feat=sub_feat[:, :4]
             else:
                 sub_feat=sub_feat[:, :3]
@@ -234,7 +238,7 @@ class RandLANet(BaseModel):
 
         data["point"] = sub_points
         data["feat"] = sub_feat
-        data["confidence"]=sub_confidence
+        if self.use_confidence==True: data["confidence"]=sub_confidence
         data["label"] = sub_labels
         data["search_tree"] = search_tree
 
@@ -359,7 +363,7 @@ class RandLANet(BaseModel):
         inputs["sub_idx"] = input_pools
         inputs["interp_idx"] = input_up_samples
         inputs["features"] = feat
-        inputs["confidence"]=confidence
+        if self.use_confidence==True: inputs["confidence"]=confidence
         inputs["point_inds"] = selected_idxs
         inputs["labels"] = label.astype(np.int64)
 
