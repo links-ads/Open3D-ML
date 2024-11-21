@@ -259,6 +259,7 @@ model:
     rotate:
       method: all
     RandomHorizontalFlip:
+      axes: [0,1]
     ChromaticAutoContrast:
       prob: 0.1
     ChromaticJitter:
