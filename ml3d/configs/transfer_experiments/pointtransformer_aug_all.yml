@@ -239,7 +239,7 @@ dataset:
 
 model:
   name: PointTransformer
-  batcher: DefaultBatcher
+  batcher: ConcatBatcher
   ckpt_path: # path/to/your/checkpoint
   in_channels: 6
   blocks: [2, 3, 4, 6, 3]

@@ -10,7 +10,7 @@ dataset:
   # Taxonomy is Soil, Terrain, Vegetation, Building, Street Element, Water
   ignored_label_inds:
     - 0
-  use_cache: false
+  use_cache: true
   datasets:
     - name: SUMDataset
       dataset_path: data/digitwin/SUM/1.0/SUM_Helsinki_C6_pcl_300
