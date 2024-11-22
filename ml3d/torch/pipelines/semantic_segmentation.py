@@ -266,6 +266,7 @@ class SemanticSegmentation(BasePipeline):
                         self.metric_test.update(valid_scores, valid_labels)
                         log.info(f"Accuracy : {self.metric_test.acc()}")
                         log.info(f"IoU : {self.metric_test.iou()}")
+                        log.info(f"f1 score : {self.metric_test.f1_score()}")
                     dataset.save_test_result(inference_result, attr)
                     # Save only for the first batch
                     if "test" in record_summary and "test" not in self.summary:
@@ -275,7 +276,7 @@ class SemanticSegmentation(BasePipeline):
 
         try:
             log.info(
-                f"Overall Testing Accuracy : {self.metric_test.acc()[-1]}, mIoU : {self.metric_test.iou()[-1]}"
+                f"Overall Testing Accuracy : {self.metric_test.acc()[-1]}, mIoU : {self.metric_test.iou()[-1]}, f1 score : {self.metric_test.f1_score()[-1]}"
             )
         except:
             log.info(f"Cannot estimate overall accuracy and IoU")
