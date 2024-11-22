@@ -512,9 +512,14 @@ class RandLANet(BaseModel):
         cfg = self.cfg
         #lo fai per tutti perche per gli altri dataset che non hanno confidence viene posta di default a 0
         labels = inputs["data"]["labels"]
-        confidence=inputs["data"]["confidence"]
-        scores, labels,confidence = filter_valid_label(
-                results, labels,confidence, cfg.num_classes, cfg.ignored_label_inds, device)
+        if self.use_confidence==True:
+            confidence=inputs["data"]["confidence"]
+            scores, labels,confidence = filter_valid_label(
+                results, labels, cfg.num_classes, cfg.ignored_label_inds, device,confidence)
+        else:
+            scores, labels,confidence = filter_valid_label(
+                results, labels, cfg.num_classes, cfg.ignored_label_inds, device
+            )
         
         if self.weighted_confidence:
             loss = Loss.weighted_confidence_CrossEntropyLoss(scores, labels,confidence,self.confidence)

@@ -62,7 +62,7 @@ class Augmentation:
 
         return pc, feat
 
-    def rotate(self, pc, cfg):
+    def rotate(self, pc, cfg=None):
         """Rotate the pointcloud.
 
         Two methods are supported. `vertical` rotates the pointcloud
@@ -73,6 +73,8 @@ class Augmentation:
             cfg: configuration dictionary.
 
         """
+        if cfg is None:
+            cfg = {}
         # Not checking for height dimension as preserving absolute height dimension improves some models.
         if np.abs(pc[:, :2].mean()) > 1e-2:
             warnings.warn(
@@ -88,7 +90,9 @@ class Augmentation:
             R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]], dtype=np.float32)
 
         elif method == "all":
-
+            max_angle = cfg.get("max_angle", np.pi / 6)
+            max_angle = np.deg2rad(max_angle)
+            
             # Choose two random angles for the first vector in polar coordinates
             theta = self.rng.random() * 2 * np.pi
             phi = (self.rng.random() - 0.5) * np.pi
@@ -99,7 +103,7 @@ class Augmentation:
             )
 
             # Choose a random rotation angle
-            alpha = self.rng.random() * 2 * np.pi
+            alpha = self.rng.random() * max_angle
 
             # Create the rotation matrix with this vector and angle
             R = create_3D_rotations(np.reshape(u, (1, -1)), np.reshape(alpha, (1, -1)))[

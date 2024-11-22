@@ -6,11 +6,13 @@ import numpy as np
 from .points import Points as pt
 
 
-def filter_valid_label(scores, labels,confidence, num_classes, ignored_label_inds, device):
+def filter_valid_label(scores, labels, num_classes, ignored_label_inds, device,confidence=None):
     """Loss functions for semantic segmentation."""
     valid_scores = scores.reshape(-1, num_classes).to(device)
     valid_labels = labels.reshape(-1).to(device)
-    valid_confidence= confidence.reshape(-1).to(device)
+    valid_confidence = None
+    if confidence is not None:
+        valid_confidence= confidence.reshape(-1).to(device)
 
     ignored_bool = torch.zeros_like(valid_labels, dtype=torch.bool)
     for ign_label in ignored_label_inds:
@@ -21,7 +23,8 @@ def filter_valid_label(scores, labels,confidence, num_classes, ignored_label_ind
         valid_scores, 0, valid_idx.unsqueeze(-1).expand(-1, num_classes)
     )
     valid_labels = torch.gather(valid_labels, 0, valid_idx)
-    valid_confidence = torch.gather(valid_confidence, 0, valid_idx)
+    if confidence is not None and valid_confidence is not None:
+        valid_confidence = torch.gather(valid_confidence, 0, valid_idx)
 
     # Reduce label values in the range of logit shape
     reducing_list = torch.arange(0, num_classes, dtype=torch.int64)
@@ -35,7 +38,7 @@ def filter_valid_label(scores, labels,confidence, num_classes, ignored_label_ind
                 0,
             )
     valid_labels = torch.gather(reducing_list.to(device), 0, valid_labels.long())
-
+    
     return valid_scores, valid_labels, valid_confidence
 
 
