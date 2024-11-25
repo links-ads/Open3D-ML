@@ -255,7 +255,7 @@ class SemanticSegmentation(BasePipeline):
                         "label"
                     ]
                     if (gt_labels > 0).any():
-                        valid_scores, valid_labels = filter_valid_label(
+                        valid_scores, valid_labels,val = filter_valid_label(
                             torch.tensor(inference_result["predict_scores"]).to(device),
                             torch.tensor(gt_labels).to(device),
                             model.cfg.num_classes,
