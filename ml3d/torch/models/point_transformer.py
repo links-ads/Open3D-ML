@@ -351,7 +351,7 @@ class PointTransformer(BaseModel):
         cfg = self.cfg
         labels = inputs['data'].label
 
-        scores, labels = filter_valid_label(results, labels, cfg.num_classes,
+        scores, labels,_ = filter_valid_label(results, labels, cfg.num_classes,
                                             cfg.ignored_label_inds, device)
 
         loss = sem_seg_loss.weighted_CrossEntropyLoss(scores, labels)
