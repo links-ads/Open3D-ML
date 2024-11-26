@@ -91,7 +91,8 @@ class Augmentation:
 
         elif method == "all":
             max_angle = cfg.get("max_angle", np.pi / 6)
-            max_angle = np.deg2rad(max_angle)
+            if max_angle > 2 * np.pi:
+                max_angle = np.deg2rad(max_angle)
             
             # Choose two random angles for the first vector in polar coordinates
             theta = self.rng.random() * 2 * np.pi
