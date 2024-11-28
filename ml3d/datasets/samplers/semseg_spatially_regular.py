@@ -8,7 +8,7 @@ from ...utils import SAMPLER
 class SemSegSpatiallyRegularSampler(object):
     """Spatially regularSampler sampler for semantic segmentation datasets."""
 
-    def __init__(self, dataset,end_threshold=0.7):
+    def __init__(self, dataset):
         self.dataset = dataset
         self.length = len(dataset)
         self.split = self.dataset.split
@@ -47,7 +47,7 @@ class SemSegSpatiallyRegularSampler(object):
             curr_could_id = 0
             while curr_could_id < self.length:
                 #TODO how pass value to end_threshold
-                if self.min_possibilities[curr_could_id] > 0.8:
+                if self.min_possibilities[curr_could_id] > 0.5:
                     curr_could_id = curr_could_id + 1
                     continue
                 self.cloud_id = curr_could_id

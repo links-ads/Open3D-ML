@@ -86,8 +86,8 @@ dataset:
     - name: Toronto3D
       dataset_path: data/digitwin/Toronto3D
       class_map:
-        1: 1
-        2: 1
+        1: 2
+        2: 2
         3: 3
         4: 4
         5: 5

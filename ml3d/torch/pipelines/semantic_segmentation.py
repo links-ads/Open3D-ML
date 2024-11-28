@@ -267,7 +267,7 @@ class SemanticSegmentation(BasePipeline):
                         log.info(f"Accuracy : {self.metric_test.acc()}")
                         log.info(f"IoU : {self.metric_test.iou()}")
                         log.info(f"f1 score : {self.metric_test.f1_score()}")
-                    dataset.save_test_result(inference_result, attr)
+                    #dataset.save_test_result(inference_result, attr)
                     # Save only for the first batch
                     if "test" in record_summary and "test" not in self.summary:
                         self.summary["test"] = self.get_3d_summary(
