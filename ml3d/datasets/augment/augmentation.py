@@ -77,9 +77,10 @@ class Augmentation:
             cfg = {}
         # Not checking for height dimension as preserving absolute height dimension improves some models.
         if np.abs(pc[:, :2].mean()) > 1e-2:
-            warnings.warn(
-                f"It is recommended to recenter the pointcloud before calling rotate."
-            )
+            # warnings.warn(
+            #     f"It is recommended to recenter the pointcloud before calling rotate."
+            # )
+            pc = recenter_pointcloud(pc)
 
         method = cfg.get("method", "vertical")
 
@@ -624,3 +625,10 @@ class ObjdetAugmentation(Augmentation):
             data = self.PointShuffle(data)
 
         return data
+
+def recenter_pointcloud(pc):
+  
+    center = np.mean(pc, axis=0)
+    pc_centered = pc - center
+    
+    return pc_centered

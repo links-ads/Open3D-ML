@@ -272,10 +272,77 @@ class PointTransformer(BaseModel):
 
         """
         cfg = self.cfg
+        
+        if torch.utils.data.get_worker_info():
+            seedseq = np.random.SeedSequence(
+                torch.utils.data.get_worker_info().seed +
+                torch.utils.data.get_worker_info().id)
+            rng = np.random.default_rng(seedseq.spawn(1)[0])
+        else:
+            rng = self.rng
+            
         points = data['point']
         feat = data['feat']
         labels = data['label']
+        search_tree = data['search_tree']
+        
+        selected_idxs, center_point = self.trans_point_sampler(
+            pc=points,
+            feat=feat,
+            label=labels,
+            search_tree=search_tree,
+            num_points=self.cfg.num_points,
+            sampler=self.cfg.get("sampler", None),
+            #confidence=confidence,
+        )
+        pc_sub = points[selected_idxs]
+        points = pc_sub.copy()
+        label_sub = labels[selected_idxs]
+        labels = label_sub.copy()
+        if feat is not None:
+            feat_sub = feat[selected_idxs]
+            feat = feat_sub.copy()
+        # if confidence is not None:
+        #     confidence_sub = confidence[selected_idxs]
+        #     confidence = confidence_sub.copy()
 
+
+        augment_cfg = self.cfg.get("augment", {}).copy()
+        val_augment_cfg = {}
+        if "recenter" in augment_cfg:
+            val_augment_cfg["recenter"] = augment_cfg.pop("recenter")
+        if "normalize" in augment_cfg:
+            val_augment_cfg["normalize"] = augment_cfg.pop("normalize")
+        if "rotate" in augment_cfg:
+            val_augment_cfg["rotate"] = augment_cfg.pop("rotate")
+        if "scale" in augment_cfg:
+            val_augment_cfg["scale"] = augment_cfg.pop("scale")
+        if "noise" in augment_cfg:
+            val_augment_cfg["noise"] = augment_cfg.pop("noise")
+        if "RandomDropout" in augment_cfg:
+            val_augment_cfg["RandomDropout"] = augment_cfg.pop("RandomRotate")
+        if "RandomHorizontalFlip" in augment_cfg:
+            val_augment_cfg["RandomHorizontalFlip"] = augment_cfg.pop(
+                "RandomHorizontalFlip"
+            )
+        if "ChromaticAutoContrast" in augment_cfg:
+            val_augment_cfg["ChromaticAutoContrast"] = augment_cfg.pop(
+                "ChromaticAutoContrast"
+            )
+        if "ChromaticTranslation" in augment_cfg:
+            val_augment_cfg["ChromaticTranslation"] = augment_cfg.pop(
+                "ChromaticTranslation"
+            )
+        if "ChromaticJitter" in augment_cfg:
+            val_augment_cfg["ChromaticJitter"] = augment_cfg.pop("ChromaticJitter")
+        if "HueSaturationTranslation" in augment_cfg:
+            val_augment_cfg["HueSaturationTranslation"] = augment_cfg.pop(
+                "HueSaturationTranslation"
+            )
+
+        self.augmenter.augment(points, feat, labels, val_augment_cfg, seed=rng)
+        
+        
         if attr['split'] in ['training', 'train']:
             points, feat, labels = self.augmenter.augment(
                 points, feat, labels, self.cfg.get('augment', None))

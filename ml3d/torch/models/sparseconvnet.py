@@ -118,13 +118,13 @@ class SparseConvUnet(BaseModel):
         cfg=self.cfg
         # If num_workers > 0, use new RNG with unique seed for each thread.
         # Else, use default RNG.
-        if torch.utils.data.get_worker_info():
-            seedseq = np.random.SeedSequence(
-                torch.utils.data.get_worker_info().seed +
-                torch.utils.data.get_worker_info().id)
-            rng = np.random.default_rng(seedseq.spawn(1)[0])
-        else:
-            rng = self.rng
+        # if torch.utils.data.get_worker_info():
+        #     seedseq = np.random.SeedSequence(
+        #         torch.utils.data.get_worker_info().seed +
+        #         torch.utils.data.get_worker_info().id)
+        #     rng = np.random.default_rng(seedseq.spawn(1)[0])
+        # else:
+        #     rng = self.rng
 
         points = np.array(data['point'], dtype=np.float32)
         
@@ -199,6 +199,14 @@ class SparseConvUnet(BaseModel):
 
     def transform(self, data, attr):
         cfg = self.cfg
+        
+        if torch.utils.data.get_worker_info():
+            seedseq = np.random.SeedSequence(
+                torch.utils.data.get_worker_info().seed +
+                torch.utils.data.get_worker_info().id)
+            rng = np.random.default_rng(seedseq.spawn(1)[0])
+        else:
+            rng = self.rng
         pc = data["point"]  # full pointcloud (N,3)
         labels = data["label"]
         feat = data["feat"] if data["feat"] is not None else None
@@ -226,21 +234,56 @@ class SparseConvUnet(BaseModel):
         #     confidence = confidence_sub.copy()
 
         points *= 1. / self.cfg.voxel_size  # Scale = 1/voxel_size
-
+        
+        augment_cfg = self.cfg.get("augment", {}).copy()
+        val_augment_cfg = {}
+        if "recenter" in augment_cfg:
+            val_augment_cfg["recenter"] = augment_cfg.pop("recenter")
+        if "normalize" in augment_cfg:
+            val_augment_cfg["normalize"] = augment_cfg.pop("normalize")
+        if "rotate" in augment_cfg:
+            val_augment_cfg["rotate"] = augment_cfg.pop("rotate")
+        if "scale" in augment_cfg:
+            val_augment_cfg["scale"] = augment_cfg.pop("scale")
+        if "noise" in augment_cfg:
+            val_augment_cfg["noise"] = augment_cfg.pop("noise")
+        if "RandomDropout" in augment_cfg:
+            val_augment_cfg["RandomDropout"] = augment_cfg.pop("RandomRotate")
+        if "RandomHorizontalFlip" in augment_cfg:
+            val_augment_cfg["RandomHorizontalFlip"] = augment_cfg.pop(
+                "RandomHorizontalFlip"
+            )
+        if "ChromaticAutoContrast" in augment_cfg:
+            val_augment_cfg["ChromaticAutoContrast"] = augment_cfg.pop(
+                "ChromaticAutoContrast"
+            )
+        if "ChromaticTranslation" in augment_cfg:
+            val_augment_cfg["ChromaticTranslation"] = augment_cfg.pop(
+                "ChromaticTranslation"
+            )
+        if "ChromaticJitter" in augment_cfg:
+            val_augment_cfg["ChromaticJitter"] = augment_cfg.pop("ChromaticJitter")
+        if "HueSaturationTranslation" in augment_cfg:
+            val_augment_cfg["HueSaturationTranslation"] = augment_cfg.pop(
+                "HueSaturationTranslation"
+            )
+        #qua points prima c'era pc
+        self.augmenter.augment(points, feat, labels, val_augment_cfg, seed=rng)
+        
         if attr['split'] in ['training', 'train']:
             points, feat, labels = self.augmenter.augment(points,
                                                           feat,
                                                           labels,
                                                           self.cfg.get(
                                                               'augment', None),
-                                                          seed=self.rng)
+                                                          seed=rng)
         m = points.min(0)
         M = points.max(0)
 
         # Randomly place pointcloud in 4096 size grid.
         grid_size = self.cfg.grid_size
-        offset = -m + np.clip(grid_size - M + m - 0.001, 0, None) * self.rng.random(
-            3) + np.clip(grid_size - M + m + 0.001, None, 0) * self.rng.random(3)
+        offset = -m + np.clip(grid_size - M + m - 0.001, 0, None) * rng.random(
+            3) + np.clip(grid_size - M + m + 0.001, None, 0) * rng.random(3)
 
         points += offset
         idxs = (points.min(1) >= 0) * (points.max(1) < 4096)
