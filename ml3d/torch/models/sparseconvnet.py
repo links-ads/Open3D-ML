@@ -1,14 +1,14 @@
 import numpy as np
 import torch
 import torch.nn as nn
-
+from sklearn.neighbors import KDTree
 from .base_model import BaseModel
 from ...utils import MODEL
+from ...datasets.utils import DataProcessing
 from ..modules.losses import filter_valid_label
 from ...datasets.augment import SemsegAugmentation
 from open3d.ml.torch.layers import SparseConv, SparseConvTranspose
 from open3d.ml.torch.ops import voxelize, reduce_subarrays_sum
-
 
 class SparseConvUnet(BaseModel):
     """Semantic Segmentation model.
@@ -40,6 +40,9 @@ class SparseConvUnet(BaseModel):
             grid_size=4096,
             batcher='ConcatBatcher',
             augment=None,
+            use_confidence=False,
+            confidence={},
+            use_intensity=False,
             **kwargs):
         super(SparseConvUnet, self).__init__(name=name,
                                              device=device,
@@ -52,9 +55,14 @@ class SparseConvUnet(BaseModel):
                                              grid_size=grid_size,
                                              batcher=batcher,
                                              augment=augment,
+                                             use_confidence=use_confidence,
+                                             confidence=confidence,
+                                             use_intensity=use_intensity,
                                              **kwargs)
         cfg = self.cfg
         self.device = device
+        self.use_intensity=use_intensity
+        self.use_confidence=use_confidence
         self.augmenter = SemsegAugmentation(cfg.augment, seed=self.rng)
         self.multiplier = cfg.multiplier
         self.input_layer = InputLayer()
@@ -69,6 +77,20 @@ class SparseConvUnet(BaseModel):
         self.relu = ReLUBlock()
         self.linear = LinearBlock(multiplier, num_classes)
         self.output_layer = OutputLayer()
+        
+        if self.use_confidence==True:
+            if isinstance(confidence,(int,float)):
+                self.confidence = {i: confidence for i in range(num_classes+1)}
+            elif isinstance(confidence,(dict)):
+                self.confidence = confidence
+                for i in range(num_classes):
+                    if i not in self.confidence and i != 0:
+                        #default value if confidence is not provided for that class
+                        self.confidence[i] = 0.85 
+            else:
+                raise ValueError("confidence must be a number or a dictionary")
+            print(f"confidence for each class : {self.confidence}")
+            
 
     def forward(self, inputs):
         pos_list = []
@@ -93,6 +115,7 @@ class SparseConvUnet(BaseModel):
         return output
 
     def preprocess(self, data, attr):
+        cfg=self.cfg
         # If num_workers > 0, use new RNG with unique seed for each thread.
         # Else, use default RNG.
         if torch.utils.data.get_worker_info():
@@ -104,7 +127,8 @@ class SparseConvUnet(BaseModel):
             rng = self.rng
 
         points = np.array(data['point'], dtype=np.float32)
-
+        
+        
         if 'label' not in data or data['label'] is None:
             labels = np.zeros((points.shape[0],), dtype=np.int32)
         else:
@@ -115,8 +139,92 @@ class SparseConvUnet(BaseModel):
                 "SparseConvnet doesn't work without feature values.")
 
         feat = np.array(data['feat'], dtype=np.float32)
-
+        sub_confidence = None
+        
+        if feat is None:
+            sub_points, sub_labels = DataProcessing.grid_subsampling(
+                points, labels=labels, grid_size=0.2
+            )
+            sub_feat = None
+        else:
+            sub_points, sub_feat, sub_labels = DataProcessing.grid_subsampling(
+                points, features=feat, labels=labels, grid_size=0.2
+            )
+            # if self.use_confidence==True: sub_confidence=sub_feat[:, -1]
+            # #sub_feat=sub_feat[:, :4]
+            # if "intensity" in data is not None and self.use_intensity==True:
+            #     sub_feat=sub_feat[:, :4]
+            # else:
+            #     sub_feat=sub_feat[:, :3]
+            
+        data = dict()
+        search_tree = KDTree(sub_points)
+        
         # Scale to voxel size.
+        # points *= 1. / self.cfg.voxel_size  # Scale = 1/voxel_size
+
+        # if attr['split'] in ['training', 'train']:
+        #     points, feat, labels = self.augmenter.augment(points,
+        #                                                   feat,
+        #                                                   labels,
+        #                                                   self.cfg.get(
+        #                                                       'augment', None),
+        #                                                   seed=rng)
+        # m = points.min(0)
+        # M = points.max(0)
+
+        # # Randomly place pointcloud in 4096 size grid.
+        # grid_size = self.cfg.grid_size
+        # offset = -m + np.clip(grid_size - M + m - 0.001, 0, None) * rng.random(
+        #     3) + np.clip(grid_size - M + m + 0.001, None, 0) * rng.random(3)
+
+        # points += offset
+        # idxs = (points.min(1) >= 0) * (points.max(1) < 4096)
+
+        # points = points[idxs]
+        # feat = feat[idxs]
+        # labels = labels[idxs]
+        
+        # points = (points.astype(np.int32) + 0.5).astype(
+        #     np.float32)  # Move points to voxel center.
+     
+        data = {}
+        data['point'] = sub_points
+        data['feat'] = sub_feat
+        data['label'] = sub_labels
+        data['search_tree'] = search_tree
+       
+
+        return data
+
+    def transform(self, data, attr):
+        cfg = self.cfg
+        pc = data["point"]  # full pointcloud (N,3)
+        labels = data["label"]
+        feat = data["feat"] if data["feat"] is not None else None
+        search_tree = data["search_tree"]
+        #confidence=data["confidence"] if "confidence" in data else None
+        
+        selected_idxs, center_point = self.trans_point_sampler(
+            pc=pc,
+            feat=feat,
+            label=labels,
+            search_tree=search_tree,
+            num_points=self.cfg.num_points,
+            sampler=self.cfg.get("sampler", None),
+            #confidence=confidence,
+        )
+        pc_sub = pc[selected_idxs]
+        points = pc_sub.copy()
+        label_sub = labels[selected_idxs]
+        labels = label_sub.copy()
+        if feat is not None:
+            feat_sub = feat[selected_idxs]
+            feat = feat_sub.copy()
+        # if confidence is not None:
+        #     confidence_sub = confidence[selected_idxs]
+        #     confidence = confidence_sub.copy()
+
         points *= 1. / self.cfg.voxel_size  # Scale = 1/voxel_size
 
         if attr['split'] in ['training', 'train']:
@@ -125,36 +233,29 @@ class SparseConvUnet(BaseModel):
                                                           labels,
                                                           self.cfg.get(
                                                               'augment', None),
-                                                          seed=rng)
+                                                          seed=self.rng)
         m = points.min(0)
         M = points.max(0)
 
         # Randomly place pointcloud in 4096 size grid.
         grid_size = self.cfg.grid_size
-        offset = -m + np.clip(grid_size - M + m - 0.001, 0, None) * rng.random(
-            3) + np.clip(grid_size - M + m + 0.001, None, 0) * rng.random(3)
+        offset = -m + np.clip(grid_size - M + m - 0.001, 0, None) * self.rng.random(
+            3) + np.clip(grid_size - M + m + 0.001, None, 0) * self.rng.random(3)
 
         points += offset
         idxs = (points.min(1) >= 0) * (points.max(1) < 4096)
 
         points = points[idxs]
-        feat = feat[idxs]
+        feat = feat[idxs] if feat is not None else None
         labels = labels[idxs]
-
+        
         points = (points.astype(np.int32) + 0.5).astype(
             np.float32)  # Move points to voxel center.
-
-        data = {}
-        data['point'] = points
-        data['feat'] = feat
-        data['label'] = labels
-
-        return data
-
-    def transform(self, data, attr):
-        data['point'] = torch.from_numpy(data['point'])
-        data['feat'] = torch.from_numpy(data['feat'])
-        data['label'] = torch.from_numpy(data['label'])
+        
+        data['point'] = torch.from_numpy(points)
+        if feat is not None:
+            data['feat'] = torch.from_numpy(feat)
+        data['label'] = torch.from_numpy(labels)
 
         return data
 
@@ -204,7 +305,7 @@ class SparseConvUnet(BaseModel):
         """
         cfg = self.cfg
         labels = torch.cat(inputs['data'].label, 0)
-
+        
         scores, labels,_ = filter_valid_label(results, labels, cfg.num_classes,
                                             cfg.ignored_label_inds, device)
 

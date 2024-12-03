@@ -248,6 +248,7 @@ model:
   in_channels: 3
   num_classes: 6
   grid_size: 4096 # ???
+  num_points: 65536
   ignored_label_inds:
     - 0
   augment:
