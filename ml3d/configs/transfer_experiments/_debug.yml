@@ -1,0 +1,33 @@
+name: ConcatDataset
+steps_per_epoch_train: 100
+steps_per_epoch_valid: 10
+test_result_folder: ./test
+cache_dir: ./dataset_cache/concat_baseline
+class_weights: [831613596, 319885857, 1534944055, 2604888915, 137576607, 361131880]
+num_classes: 6
+num_points: 65536
+# Taxonomy is Soil, Terrain, Vegetation, Building, Street Element, Water
+ignored_label_inds:
+  - 0
+use_cache: true
+datasets:
+  - name: Toronto3D
+    dataset_path: data/digitwin/Toronto3D
+    class_map:
+      1: 2
+      2: 2
+      3: 3
+      4: 4
+      5: 5
+      6: 5
+      7: 5
+      8: 4
+    test_files:
+      - L002.ply
+      - L001.ply
+    train_files:
+      - L001.ply
+      - L003.ply
+      - L004.ply
+    val_files:
+      - L002.ply
