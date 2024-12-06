@@ -254,6 +254,9 @@ class SemanticSegmentation(BasePipeline):
                     gt_labels = self.dataset_split.get_data(test_sampler.cloud_id)[
                         "label"
                     ]
+                    inds = inputs["data"].point_inds[0].cpu().numpy()
+                    gt_labels = gt_labels[inds]
+
                     if (gt_labels > 0).any():
                         valid_scores, valid_labels,_ = filter_valid_label(
                             torch.tensor(inference_result["predict_scores"]).to(device),

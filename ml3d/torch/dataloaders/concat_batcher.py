@@ -411,29 +411,35 @@ class SparseConvUnetBatch:
         feat = []
         label = []
         lengths = []
+        point_inds = []
 
         for batch in batches:
             data = batch['data']
             pc.append(data['point'])
             feat.append(data['feat'])
             label.append(data['label'])
+            point_inds.append(data['point_inds'])
             lengths.append(data['point'].shape[0])
+            
 
         self.point = pc
         self.feat = feat
         self.label = label
+        self.point_inds = point_inds
         self.batch_lengths = lengths
 
     def pin_memory(self):
         self.point = [pc.pin_memory() for pc in self.point]
         self.feat = [feat.pin_memory() for feat in self.feat]
         self.label = [label.pin_memory() for label in self.label]
+        self.point_inds = [point_inds.pin_memory() for point_inds in self.point_inds]
         return self
 
     def to(self, device):
         self.point = [pc.to(device) for pc in self.point]
         self.feat = [feat.to(device) for feat in self.feat]
         self.label = [label.to(device) for label in self.label]
+        self.point_inds = [point_inds.to(device) for point_inds in self.point_inds]
 
     @staticmethod
     def scatter(batch, num_gpu):
@@ -447,6 +453,7 @@ class SparseConvUnetBatch:
             batches[i].point = batch.point[start:end]
             batches[i].feat = batch.feat[start:end]
             batches[i].label = batch.label[start:end]
+            batches[i].point_inds = batch.point_inds[start:end]
             batches[i].batch_lengths = batch.batch_lengths[start:end]
 
         return [b for b in batches if len(b.point)]  # filter empty batch
@@ -459,29 +466,34 @@ class PointTransformerBatch:
         feat = []
         label = []
         splits = [0]
+        point_inds = []
 
         for batch in batches:
             data = batch['data']
             pc.append(data['point'])
             feat.append(data['feat'])
             label.append(data['label'])
+            point_inds.append(data['point_inds'])
             splits.append(splits[-1] + data['point'].shape[0])
 
         self.point = torch.cat(pc, 0)
         self.feat = torch.cat(feat, 0)
         self.label = torch.cat(label, 0)
+        self.point_inds = torch.cat(point_inds, 0)
         self.row_splits = torch.LongTensor(splits)
 
     def pin_memory(self):
         self.point = self.point.pin_memory()
         self.feat = self.feat.pin_memory()
         self.label = self.label.pin_memory()
+        self.point_inds = self.point_inds.pin_memory()
         return self
 
     def to(self, device):
         self.point = self.point.to(device)
         self.feat = self.feat.to(device)
         self.label = self.label.to(device)
+        self.point_inds = self.point_inds.to(device)
 
 
 class ObjectDetectBatch:

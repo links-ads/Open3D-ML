@@ -404,7 +404,7 @@ class PointTransformer(BaseModel):
 
         return True
 
-    def get_loss(self, sem_seg_loss, results, inputs):
+    def get_loss(self, sem_seg_loss, results, inputs,device="cpu"):
         """Calculate the loss on output of the model.
 
         Args:

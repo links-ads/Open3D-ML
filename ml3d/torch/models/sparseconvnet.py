@@ -187,13 +187,15 @@ class SparseConvUnet(BaseModel):
         
         # points = (points.astype(np.int32) + 0.5).astype(
         #     np.float32)  # Move points to voxel center.
-     
-        data = {}
+       
+        
         data['point'] = sub_points
         data['feat'] = sub_feat
         data['label'] = sub_labels
         data['search_tree'] = search_tree
-       
+
+        
+        
 
         return data
 
@@ -241,32 +243,7 @@ class SparseConvUnet(BaseModel):
             val_augment_cfg["recenter"] = augment_cfg.pop("recenter")
         if "normalize" in augment_cfg:
             val_augment_cfg["normalize"] = augment_cfg.pop("normalize")
-        if "rotate" in augment_cfg:
-            val_augment_cfg["rotate"] = augment_cfg.pop("rotate")
-        if "scale" in augment_cfg:
-            val_augment_cfg["scale"] = augment_cfg.pop("scale")
-        if "noise" in augment_cfg:
-            val_augment_cfg["noise"] = augment_cfg.pop("noise")
-        if "RandomDropout" in augment_cfg:
-            val_augment_cfg["RandomDropout"] = augment_cfg.pop("RandomRotate")
-        if "RandomHorizontalFlip" in augment_cfg:
-            val_augment_cfg["RandomHorizontalFlip"] = augment_cfg.pop(
-                "RandomHorizontalFlip"
-            )
-        if "ChromaticAutoContrast" in augment_cfg:
-            val_augment_cfg["ChromaticAutoContrast"] = augment_cfg.pop(
-                "ChromaticAutoContrast"
-            )
-        if "ChromaticTranslation" in augment_cfg:
-            val_augment_cfg["ChromaticTranslation"] = augment_cfg.pop(
-                "ChromaticTranslation"
-            )
-        if "ChromaticJitter" in augment_cfg:
-            val_augment_cfg["ChromaticJitter"] = augment_cfg.pop("ChromaticJitter")
-        if "HueSaturationTranslation" in augment_cfg:
-            val_augment_cfg["HueSaturationTranslation"] = augment_cfg.pop(
-                "HueSaturationTranslation"
-            )
+       
         #qua points prima c'era pc
         self.augmenter.augment(points, feat, labels, val_augment_cfg, seed=rng)
         
@@ -274,8 +251,7 @@ class SparseConvUnet(BaseModel):
             points, feat, labels = self.augmenter.augment(points,
                                                           feat,
                                                           labels,
-                                                          self.cfg.get(
-                                                              'augment', None),
+                                                          augment_cfg,
                                                           seed=rng)
         m = points.min(0)
         M = points.max(0)
@@ -295,21 +271,40 @@ class SparseConvUnet(BaseModel):
         points = (points.astype(np.int32) + 0.5).astype(
             np.float32)  # Move points to voxel center.
         
-        data['point'] = torch.from_numpy(points)
+        split = attr["split"]
+         
+        # if split in ["test", "testing"]:
+        #     proj_inds = np.squeeze(search_tree.query(points, return_distance=False))
+        #     proj_inds = proj_inds.astype(np.int32)
+        #     data["proj_inds"] = proj_inds
+            
+        input=dict()
+        input['point'] = torch.from_numpy(points)
         if feat is not None:
-            data['feat'] = torch.from_numpy(feat)
-        data['label'] = torch.from_numpy(labels)
+            input['feat'] = torch.from_numpy(feat)
+        input['label'] = torch.from_numpy(labels)
+        input['point_inds'] = torch.from_numpy(selected_idxs)
+        return input
 
-        return data
+    # def update_probs(self, inputs, results, test_probs, test_labels):
+    #     result = results.reshape(-1, self.cfg.num_classes)
+    #     probs = torch.nn.functional.softmax(result, dim=-1).cpu().data.numpy()
+    #     labels = np.argmax(probs, 1)
 
-    def update_probs(self, inputs, results, test_probs, test_labels):
+    #     self.trans_point_sampler(patchwise=False)
+
+    #     return probs, labels
+    
+    def update_probs(self, inputs, results, test_probs, test_labels=None):
         result = results.reshape(-1, self.cfg.num_classes)
         probs = torch.nn.functional.softmax(result, dim=-1).cpu().data.numpy()
         labels = np.argmax(probs, 1)
 
         self.trans_point_sampler(patchwise=False)
 
-        return probs, labels
+        return probs
+    
+  
 
     def inference_begin(self, data):
         data = self.preprocess(data, {'split': 'test'})

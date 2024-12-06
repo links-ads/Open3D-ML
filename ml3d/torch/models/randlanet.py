@@ -296,32 +296,7 @@ class RandLANet(BaseModel):
             val_augment_cfg["recenter"] = augment_cfg.pop("recenter")
         if "normalize" in augment_cfg:
             val_augment_cfg["normalize"] = augment_cfg.pop("normalize")
-        if "rotate" in augment_cfg:
-            val_augment_cfg["rotate"] = augment_cfg.pop("rotate")
-        if "scale" in augment_cfg:
-            val_augment_cfg["scale"] = augment_cfg.pop("scale")
-        if "noise" in augment_cfg:
-            val_augment_cfg["noise"] = augment_cfg.pop("noise")
-        if "RandomDropout" in augment_cfg:
-            val_augment_cfg["RandomDropout"] = augment_cfg.pop("RandomRotate")
-        if "RandomHorizontalFlip" in augment_cfg:
-            val_augment_cfg["RandomHorizontalFlip"] = augment_cfg.pop(
-                "RandomHorizontalFlip"
-            )
-        if "ChromaticAutoContrast" in augment_cfg:
-            val_augment_cfg["ChromaticAutoContrast"] = augment_cfg.pop(
-                "ChromaticAutoContrast"
-            )
-        if "ChromaticTranslation" in augment_cfg:
-            val_augment_cfg["ChromaticTranslation"] = augment_cfg.pop(
-                "ChromaticTranslation"
-            )
-        if "ChromaticJitter" in augment_cfg:
-            val_augment_cfg["ChromaticJitter"] = augment_cfg.pop("ChromaticJitter")
-        if "HueSaturationTranslation" in augment_cfg:
-            val_augment_cfg["HueSaturationTranslation"] = augment_cfg.pop(
-                "HueSaturationTranslation"
-            )
+      
 
         self.augmenter.augment(pc, feat, label, val_augment_cfg, seed=rng)
 
