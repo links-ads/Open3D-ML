@@ -9,7 +9,7 @@ num_points: 65536
 # Taxonomy is Soil, Terrain, Vegetation, Building, Street Element, Water
 ignored_label_inds:
   - 0
-use_cache: true
+use_cache: false
 datasets:
   - name: Toronto3D
     dataset_path: data/digitwin/Toronto3D
