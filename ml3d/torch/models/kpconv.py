@@ -17,6 +17,7 @@ from .base_model import BaseModel
 from ..modules.losses import filter_valid_label
 from ...utils import MODEL
 
+from ...datasets.augment import SemsegAugmentation
 from ...datasets.utils import (
     DataProcessing,
     trans_normalize,
@@ -178,6 +179,8 @@ class KPFCNN(BaseModel):
         ign_lbls = cfg.ignored_label_inds
         self.K = cfg.num_kernel_points
         self.C = len(lbl_values) - len(ign_lbls)
+        # augmenter
+        self.augmenter = SemsegAugmentation(cfg.augment, seed=self.rng)
 
         # self.preprocess = None
         #####################
@@ -367,7 +370,7 @@ class KPFCNN(BaseModel):
         outputs = torch.transpose(results, 0, 1).unsqueeze(0)
         labels = labels.unsqueeze(0)
 
-        scores, labels = filter_valid_label(
+        scores, labels, confidence = filter_valid_label(
             results, labels, cfg.num_classes, cfg.ignored_label_inds, device
         )
 
@@ -434,8 +437,9 @@ class KPFCNN(BaseModel):
         # Read points
         points = data["point"]
         sem_labels = data["label"]
-        feat = data["feat"]
+        feat = data["feat"]  # colors 0-255
         search_tree = data["search_tree"]
+        confidence = data.get("confidence", None)
 
         dim_points = points.shape[1]
         if feat is None:
@@ -489,7 +493,7 @@ class KPFCNN(BaseModel):
             )
 
             curr_new_points = new_points[mask_inds]
-
+            curr_new_feats = feat[mask_inds]
             curr_sem_labels = sem_labels[mask_inds]
 
             o_labels = sem_labels.astype(np.int32)
@@ -499,16 +503,42 @@ class KPFCNN(BaseModel):
             #     o_pts = new_points
             #     o_labels = sem_labels.astype(np.int32)
 
-            curr_new_points = curr_new_points - p0
-            t_normalize = self.cfg.get("t_normalize", {})
-            curr_new_points, curr_feat = trans_normalize(
-                curr_new_points, feat, t_normalize
-            )
+            augment_cfg = self.cfg.get("augment", {}).copy()
+            val_augment_cfg = {}
 
-            if curr_feat is None:
+            if "recenter" in augment_cfg:
+                val_augment_cfg["recenter"] = augment_cfg.pop("recenter")
+            if "normalize" in augment_cfg:
+                val_augment_cfg["normalize"] = augment_cfg.pop("normalize")
+
+            self.augmenter.augment(
+                curr_new_points,
+                curr_new_feats,
+                curr_sem_labels,
+                val_augment_cfg,
+                seed=1,
+            )
+            if attr["split"] in ["training", "train"]:
+                curr_new_points, curr_new_feats, curr_sem_labels = (
+                    self.augmenter.augment(
+                        curr_new_points,
+                        curr_new_feats,
+                        curr_sem_labels,
+                        augment_cfg,
+                        seed=1,
+                    )
+                )
+
+            # curr_new_points = curr_new_points - p0
+            # t_normalize = self.cfg.get("t_normalize", {})
+            # curr_new_points, curr_feat = trans_normalize(
+            #    curr_new_points, feat, t_normalize
+            # )
+
+            if curr_new_feats is None:
                 curr_new_coords = curr_new_points.copy()
             else:
-                curr_new_coords = np.hstack((curr_new_points, curr_feat[mask_inds, :]))
+                curr_new_coords = np.hstack((curr_new_points, curr_new_feats))
 
             in_pts = curr_new_points
             in_fts = curr_new_coords
@@ -551,17 +581,19 @@ class KPFCNN(BaseModel):
             #     reproj_mask = np.zeros((0,))
 
             # Data augmentation
-            in_pts, scale, R = self.augmentation_transform(in_pts, is_test=is_test)
+
+            # in_pts, scale, R = self.augmentation_transform(in_pts, is_test=is_test)
 
             # Color augmentation
-            if np.random.rand() > self.cfg.augment_color:
-                in_fts[:, 3:] *= 0
+            R = np.eye(in_pts.shape[1])
+            # if np.random.rand() > self.cfg.augment_color:
+            #    in_fts[:, 3:] *= 0
 
             result_data["p_list"] += [in_pts]
             result_data["f_list"] += [in_fts]
             result_data["l_list"] += [np.squeeze(in_lbls)]
             result_data["p0_list"] += [p0]
-            result_data["s_list"] += [scale]
+            result_data["s_list"] += [1.0]
             result_data["R_list"] += [R]
             result_data["r_inds_list"] += [proj_inds]
             result_data["r_mask_list"] += [reproj_mask]
