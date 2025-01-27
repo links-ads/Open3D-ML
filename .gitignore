@@ -32,3 +32,5 @@ train_log/
 pc/
 experiments/
 cprofile/
+class_frequence.ipynb
+datasets_labels.json

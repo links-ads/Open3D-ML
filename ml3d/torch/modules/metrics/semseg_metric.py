@@ -112,7 +112,10 @@ class SemSegMetric(object):
             else:
                 precision = tp / (tp + fp)
                 recall = tp / (tp + fn)
-                f1 = 2 * (precision * recall) / (precision + recall)
+                if precision + recall == 0:
+                    f1 = 0
+                else:
+                    f1 = 2 * (precision * recall) / (precision + recall)
 
             f1_scores.append(f1)
 

@@ -254,6 +254,7 @@ class SemanticSegmentation(BasePipeline):
                     gt_labels = self.dataset_split.get_data(test_sampler.cloud_id)[
                         "label"
                     ]
+                   
                     inds = inputs["data"].point_inds[0].cpu().numpy()
                     gt_labels = gt_labels[inds]
 
@@ -453,7 +454,10 @@ class SemanticSegmentation(BasePipeline):
 
                 if predict_scores.size()[-1] == 0:
                     continue
-
+                
+                if predict_scores.size()[0] == 0 and torch.isnan(loss):
+                    continue
+                
                 loss.backward()
                 if model.cfg.get("grad_clip_norm", -1) > 0:
                     torch.nn.utils.clip_grad_value_(
@@ -488,6 +492,9 @@ class SemanticSegmentation(BasePipeline):
                     )
 
                     if predict_scores.size()[-1] == 0:
+                        continue
+                    
+                    if predict_scores.size()[0] == 0 and torch.isnan(loss):
                         continue
 
                     self.metric_val.update(predict_scores, gt_labels)

@@ -4,7 +4,7 @@ dataset:
   steps_per_epoch_valid: 10
   test_result_folder: ./test
   cache_dir: ./dataset_cache/concat_baseline
-  class_weights: [831613596, 319885857, 1534944055, 2604888915, 137576607, 361131880]
+  class_weights: [601132142, 269393165, 1140060995, 2379681581, 108684397, 361131880]
   num_classes: 6
   num_points: 65536
   # Taxonomy is Soil, Terrain, Vegetation, Building, Street Element, Water
@@ -13,7 +13,7 @@ dataset:
   use_cache: true
   datasets:
     - name: TurinDataset3D
-      dataset_path: /nfs/home/intini/Open3D-ML/data/digitwin/sansalvario_crop/nuova_consegna_2507/lidar_aereo_man_labeled
+      dataset_path: /nfs/home/intini/Open3D-ML/experiments/points_cloud_Transfer
       num_points: 65536
       train_dir: test #cartella con label e confidence
       val_dir: test #cartella con label e confidence
@@ -27,6 +27,42 @@ dataset:
         4: 4 # Building
         5: 5 # Street elements
         6: 6 # Water
+    # - name: Toronto3D
+    #   dataset_path: data/digitwin/Toronto3D
+    #   class_map:
+    #     1: 2
+    #     2: 2
+    #     3: 3
+    #     4: 4
+    #     5: 5
+    #     6: 5
+    #     7: 5
+    #     8: 4
+    #   test_files:
+    #     - L002.ply
+    #   train_files:
+    #     - L001.ply
+    #     - L003.ply
+    #     - L004.ply
+    #   val_files:
+    #     - L002.ply
+    # - name: FRACTALDataset
+    #   dataset_path: data/digitwin/FRACTAL/extracted_data
+    #   train_dir: train
+    #   val_dir: val
+    #   test_dir: test
+    #   class_map:
+    #     1: 0
+    #     2: 0
+    #     3: 1
+    #     4: 3
+    #     5: 3
+    #     6: 4
+    #     9: 6
+    #     17: 2
+    #     64: 5
+    #     65: 0
+    #     66: 0
     # - name: SUMDataset
     #   dataset_path: data/digitwin/SUM/1.0/SUM_Helsinki_C6_pcl_300
     #   train_files: train/*
@@ -98,60 +134,6 @@ dataset:
     #     - test/cambridge_block_22.ply
     #     - test/cambridge_block_16.ply
     #     - test/cambridge_block_27.ply
-    # - name: Toronto3D
-    #   dataset_path: data/digitwin/Toronto3D
-    #   class_map:
-    #     1: 2
-    #     2: 2
-    #     3: 3
-    #     4: 4
-    #     5: 5
-    #     6: 5
-    #     7: 5
-    #     8: 4
-    #   test_files:
-    #     - L002.ply
-    #   train_files:
-    #     - L001.ply
-    #     - L003.ply
-    #     - L004.ply
-    #   val_files:
-    #     - L002.ply
-    # - name: ECLAIRDataset
-    #   dataset_path: data/digitwin/ECLAIR
-    #   train_files: train.txt
-    #   val_files: val.txt
-    #   test_files: test.txt
-    #   class_map:
-    #     0: 0
-    #     1: 0
-    #     2: 0
-    #     3: 3
-    #     4: 4
-    #     5: 0
-    #     6: 5
-    #     7: 5
-    #     8: 5
-    #     9: 4
-    #     10: 4
-    #     11: 5
-    # - name: FRACTALDataset
-    #   dataset_path: data/digitwin/FRACTAL/extracted_data
-    #   train_dir: train
-    #   val_dir: val
-    #   test_dir: test
-    #   class_map:
-    #     1: 0
-    #     2: 0
-    #     3: 1
-    #     4: 3
-    #     5: 3
-    #     6: 4
-    #     9: 6
-    #     17: 2
-    #     64: 5
-    #     65: 0
-    #     66: 0
     # - name: STPLS3D
     #   dataset_path: data/digitwin/STPLS3D
     #   class_map:
@@ -177,36 +159,27 @@ dataset:
     #   train_files:
     #     - RealWorldData/OCCC_points.ply
     #     - RealWorldData/RA_points.ply
-    #     - Synthetic_v3/1_points_GTv3.ply
-    #     - Synthetic_v3/2_points_GTv3.ply
-    #     - Synthetic_v3/3_points_GTv3.ply
-    #     - Synthetic_v3/4_points_GTv3.ply
-    #     - Synthetic_v3/5_points_GTv3.ply
-    #     - Synthetic_v3/6_points_GTv3.ply
-    #     - Synthetic_v3/7_points_GTv3.ply
-    #     - Synthetic_v3/8_points_GTv3.ply
-    #     - Synthetic_v3/9_points_GTv3.ply
-    #     - Synthetic_v3/10_points_GTv3.ply
-    #     - Synthetic_v3/11_points_GTv3.ply
-    #     - Synthetic_v3/12_points_GTv3.ply
-    #     - Synthetic_v3/13_points_GTv3.ply
-    #     - Synthetic_v3/14_points_GTv3.ply
-    #     - Synthetic_v3/15_points_GTv3.ply
-    #     - Synthetic_v3/16_points_GTv3.ply
-    #     - Synthetic_v3/17_points_GTv3.ply
-    #     - Synthetic_v3/18_points_GTv3.ply
-    #     - Synthetic_v3/19_points_GTv3.ply
     #   val_files:
     #     - RealWorldData/USC_points.ply
-    #     - Synthetic_v3/20_points_GTv3.ply
-    #     - Synthetic_v3/21_points_GTv3.ply
-    #     - Synthetic_v3/22_points_GTv3.ply
     #   test_files:
     #     - RealWorldData/WMSC_points.ply
-    #     - Synthetic_v3/1_points_GTv3.ply
-    #     - Synthetic_v3/23_points_GTv3.ply
-    #     - Synthetic_v3/24_points_GTv3.ply
-    #     - Synthetic_v3/25_points_GTv3.ply
+    # - name: HessigheimDataset
+    #   dataset_path: data/digitwin/Hessigheim/March2018
+    #   train_dir: training
+    #   val_dir: validation
+    #   test_dir: test
+    #   class_map:
+    #     0: 1
+    #     1: 2
+    #     2: 5
+    #     3: 5
+    #     4: 4
+    #     5: 4
+    #     6: 3
+    #     7: 3
+    #     8: 1
+    #     9: 4
+    #     10: 4
     # - name: Swiss3D
     #   dataset_path: data/digitwin/Swiss3D/Medium
     #   class_map:
@@ -234,23 +207,7 @@ dataset:
     #     - 9_Zug_16_34308_-23002.ply
     #     - 11_Zurich_16_34317_-22952.ply
     #     - 1_Davos_16_34556_-23105.ply
-    # - name: HessigheimDataset
-    #   dataset_path: data/digitwin/Hessigheim/March2018
-    #   train_dir: training
-    #   val_dir: validation
-    #   test_dir: test
-    #   class_map:
-    #     0: 1
-    #     1: 2
-    #     2: 5
-    #     3: 5
-    #     4: 4
-    #     5: 4
-    #     6: 3
-    #     7: 3
-    #     8: 1
-    #     9: 4
-    #     10: 4
+    
 
 model:
   name: PointTransformer
@@ -259,7 +216,7 @@ model:
   in_channels: 6
   blocks: [2, 3, 4, 6, 3]
   num_classes: 6
-  voxel_size: 0.2 # default is 0.04
+  voxel_size: 0.2 # default is 0.04, 0.2
   max_voxels: 65536 # default is 50000
   num_points: 65536
   ignored_label_inds:
@@ -270,17 +227,6 @@ model:
     normalize:
       points:
         method: linear
-    rotate:
-      method: all
-    RandomHorizontalFlip:
-      axes: [0,1]
-    ChromaticAutoContrast:
-      prob: 0.1
-    ChromaticJitter:
-      std: 0.008
-    HueSaturationTranslation:
-      hue_max: 0.3
-      saturation_max: 0.1
  
 pipeline:
   name: SemanticSegmentation

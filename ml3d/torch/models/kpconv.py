@@ -373,7 +373,10 @@ class KPFCNN(BaseModel):
         scores, labels, confidence = filter_valid_label(
             results, labels, cfg.num_classes, cfg.ignored_label_inds, device
         )
-
+        
+        if scores.size(0) == 0 and labels.size(0) == 0:
+            return torch.tensor(float('nan'), device=device),scores,labels
+     
         # Cross entropy loss
         self.output_loss = Loss.weighted_CrossEntropyLoss(scores, labels)
 
@@ -440,6 +443,7 @@ class KPFCNN(BaseModel):
         feat = data["feat"]  # colors 0-255
         search_tree = data["search_tree"]
         confidence = data.get("confidence", None)
+        
 
         dim_points = points.shape[1]
         if feat is None:
