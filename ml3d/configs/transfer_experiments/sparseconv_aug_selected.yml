@@ -208,21 +208,21 @@ dataset:
         - 11_Zurich_16_34317_-22952.ply
         - 1_Davos_16_34556_-23105.ply
     
+
 model:
-  name: RandLANet
-  batcher: DefaultBatcher
+  name: SparseConvUnet
+  batcher: ConcatBatcher
   ckpt_path: # TODO: checkpoint?
-  num_neighbors: 16
-  num_layers: 5
-  num_points: 65536
+  multiplier: 32
+  voxel_size: 0.2 # default 0.02
+  residual_blocks: True
+  conv_block_reps: 1
+  in_channels: 3
   num_classes: 6
-  ignored_label_inds: [0]
-  sub_sampling_ratio: [4, 4, 4, 4, 2]
-  in_channels: 6
-  dim_input: 6
-  dim_features: 8
-  dim_output: [16, 64, 128, 256, 512]
-  grid_size: 0.2
+  grid_size: 4096 # ???
+  num_points: 65536
+  ignored_label_inds:
+    - 0
   augment:
     recenter:
       dim: [0, 1, 2]
@@ -240,7 +240,7 @@ model:
     HueSaturationTranslation:
       hue_max: 0.3
       saturation_max: 0.1
- 
+
 pipeline:
   name: SemanticSegmentation
   optimizer:
@@ -254,5 +254,5 @@ pipeline:
   train_sum_dir: ./test
   num_workers: 0
   pin_memory: false
-  val_batch_size: 4
+  val_batch_size: 2
 

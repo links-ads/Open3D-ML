@@ -13,6 +13,7 @@ class SemSegMetric(object):
         super(SemSegMetric, self).__init__()
         self.confusion_matrix = None
         self.num_classes = None
+        self.accs = []
 
     def update(self, scores, labels):
         conf = self.get_confusion_matrix(scores, labels)

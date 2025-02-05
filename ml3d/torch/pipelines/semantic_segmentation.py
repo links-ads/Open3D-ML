@@ -97,6 +97,7 @@ class SemanticSegmentation(BasePipeline):
         device="cuda",
         split="train",
         end_threshold=0.5,
+        inds=False,
         **kwargs,
     ):
 
@@ -118,9 +119,11 @@ class SemanticSegmentation(BasePipeline):
             device=device,
             split=split,
             end_threshold=end_threshold,
+            inds=inds,
             **kwargs,
         )
         self.end_threshold = end_threshold
+        self.inds=inds
 
     def run_inference(self, data):
         """Run inference on given data.
@@ -234,6 +237,7 @@ class SemanticSegmentation(BasePipeline):
         self.test_probs = []
         self.ori_test_probs = []
         self.ori_test_labels = []
+        self.miou=[]
 
         record_summary = cfg.get("summary").get("record_for", [])
         log.info("Started testing")
@@ -250,15 +254,21 @@ class SemanticSegmentation(BasePipeline):
                         "predict_labels": self.ori_test_labels.pop(),
                         "predict_scores": self.ori_test_probs.pop(),
                     }
+                   
                     attr = self.dataset_split.get_attr(test_sampler.cloud_id)
                     gt_labels = self.dataset_split.get_data(test_sampler.cloud_id)[
                         "label"
                     ]
+                    
                    
-                    inds = inputs["data"].point_inds[0].cpu().numpy()
-                    gt_labels = gt_labels[inds]
-
+                    if self.inds:
+                        inds = inputs["data"].point_inds.cpu().numpy()
+                        gt_labels = gt_labels[inds]
+                   
+                   
                     if (gt_labels > 0).any():
+                        log.info(f"unique gt_labels: {np.unique(gt_labels)}")
+                        log.info(f"unique predict_labels: {np.unique(inference_result['predict_labels'])}")
                         valid_scores, valid_labels,_ = filter_valid_label(
                             torch.tensor(inference_result["predict_scores"]).to(device),
                             torch.tensor(gt_labels).to(device),
@@ -266,21 +276,22 @@ class SemanticSegmentation(BasePipeline):
                             model.cfg.ignored_label_inds,
                             device,
                         )
-
+                        #stampare cloud id
                         self.metric_test.update(valid_scores, valid_labels)
-                        log.info(f"Accuracy : {self.metric_test.acc()}")
+                        log.info(f"Accuracy : {self.metric_test.acc()}") 
                         log.info(f"IoU : {self.metric_test.iou()}")
                         log.info(f"f1 score : {self.metric_test.f1_score()}")
+                        self.miou.append(self.metric_test.iou()[-1])
                     #dataset.save_test_result(inference_result, attr)
                     # Save only for the first batch
                     if "test" in record_summary and "test" not in self.summary:
                         self.summary["test"] = self.get_3d_summary(
                             results, inputs["data"], 0, save_gt=False
                         )
-
+       
         try:
             log.info(
-                f"Overall Testing Accuracy : {self.metric_test.acc()[-1]}, mIoU : {self.metric_test.iou()[-1]}, f1 score : {self.metric_test.f1_score()[-1]}"
+                f"Overall Testing Accuracy : {self.metric_test.acc()[-1]}, mIoU : {np.nanmean(self.miou)}, f1 score : {self.metric_test.f1_score()[-1]}"
             )
         except:
             log.info(f"Cannot estimate overall accuracy and IoU")
@@ -290,6 +301,7 @@ class SemanticSegmentation(BasePipeline):
     def update_tests(self, sampler, inputs, results):
         """Update tests using sampler, inputs, and results."""
         split = sampler.split
+        self.end_threshold=0.5
         #end_threshold = 0.5
         if self.curr_cloud_id != sampler.cloud_id:
             self.curr_cloud_id = sampler.cloud_id
@@ -312,6 +324,7 @@ class SemanticSegmentation(BasePipeline):
             - self.pbar_update
         )
         self.pbar_update = this_possiblility[this_possiblility > self.end_threshold].shape[0]
+       
         self.test_probs[self.curr_cloud_id] = self.model.update_probs(
             inputs,
             results,
@@ -445,7 +458,8 @@ class SemanticSegmentation(BasePipeline):
                 if hasattr(inputs["data"], "to"):
                     inputs["data"].to(device)
                 self.optimizer.zero_grad()
-
+                    
+                
                 results = model(inputs["data"])
             
                 loss, gt_labels, predict_scores = model.get_loss(
@@ -485,7 +499,9 @@ class SemanticSegmentation(BasePipeline):
                 for step, inputs in enumerate(tqdm(valid_loader, desc="validation")):
                     if hasattr(inputs["data"], "to"):
                         inputs["data"].to(device)
-
+                        
+                    
+                    
                     results = model(inputs["data"])
                     loss, gt_labels, predict_scores = model.get_loss(
                         Loss, results, inputs, device
