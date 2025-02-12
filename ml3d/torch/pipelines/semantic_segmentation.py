@@ -1,24 +1,25 @@
 import logging
+from datetime import datetime
 from os.path import exists, join
 from pathlib import Path
-from datetime import datetime
 
 import numpy as np
-from tqdm import tqdm
 import torch
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import DataLoader
 
 # pylint: disable-next=unused-import
 from open3d.visualization.tensorboard_plugin import summary
-from .base_pipeline import BasePipeline
-from ..dataloaders import get_sampler, TorchDataloader, DefaultBatcher, ConcatBatcher
-from ..utils import latest_torch_ckpt
-from ..modules.losses import SemSegLoss, filter_valid_label, SoftmaxEntropyLoss
-from ..modules.metrics import SemSegMetric
-from ...utils import make_dir, PIPELINE, get_runid, code2md
-from ...datasets import InferenceDummySplit
 from torch import nn
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
+
+from ...datasets import InferenceDummySplit
+from ...utils import PIPELINE, code2md, get_runid, make_dir
+from ..dataloaders import ConcatBatcher, DefaultBatcher, TorchDataloader, get_sampler
+from ..modules.losses import SemSegLoss, SoftmaxEntropyLoss, filter_valid_label
+from ..modules.metrics import SemSegMetric
+from ..utils import latest_torch_ckpt
+from .base_pipeline import BasePipeline
 
 log = logging.getLogger(__name__)
 
@@ -123,7 +124,7 @@ class SemanticSegmentation(BasePipeline):
             **kwargs,
         )
         self.end_threshold = end_threshold
-        self.inds=inds
+        self.inds = inds
 
     def run_inference(self, data):
         """Run inference on given data.
@@ -237,7 +238,7 @@ class SemanticSegmentation(BasePipeline):
         self.test_probs = []
         self.ori_test_probs = []
         self.ori_test_labels = []
-        self.miou=[]
+        self.miou = []
 
         record_summary = cfg.get("summary").get("record_for", [])
         log.info("Started testing")
@@ -254,41 +255,41 @@ class SemanticSegmentation(BasePipeline):
                         "predict_labels": self.ori_test_labels.pop(),
                         "predict_scores": self.ori_test_probs.pop(),
                     }
-                   
+
                     attr = self.dataset_split.get_attr(test_sampler.cloud_id)
                     gt_labels = self.dataset_split.get_data(test_sampler.cloud_id)[
                         "label"
                     ]
-                    
-                   
+
                     if self.inds:
                         inds = inputs["data"].point_inds.cpu().numpy()
                         gt_labels = gt_labels[inds]
-                   
-                   
+
                     if (gt_labels > 0).any():
                         log.info(f"unique gt_labels: {np.unique(gt_labels)}")
-                        log.info(f"unique predict_labels: {np.unique(inference_result['predict_labels'])}")
-                        valid_scores, valid_labels,_ = filter_valid_label(
+                        log.info(
+                            f"unique predict_labels: {np.unique(inference_result['predict_labels'])}"
+                        )
+                        valid_scores, valid_labels, _ = filter_valid_label(
                             torch.tensor(inference_result["predict_scores"]).to(device),
                             torch.tensor(gt_labels).to(device),
                             model.cfg.num_classes,
                             model.cfg.ignored_label_inds,
                             device,
                         )
-                        #stampare cloud id
+                        # stampare cloud id
                         self.metric_test.update(valid_scores, valid_labels)
-                        log.info(f"Accuracy : {self.metric_test.acc()}") 
+                        log.info(f"Accuracy : {self.metric_test.acc()}")
                         log.info(f"IoU : {self.metric_test.iou()}")
                         log.info(f"f1 score : {self.metric_test.f1_score()}")
                         self.miou.append(self.metric_test.iou()[-1])
-                    #dataset.save_test_result(inference_result, attr)
+                    dataset.save_test_result(inference_result, attr)
                     # Save only for the first batch
                     if "test" in record_summary and "test" not in self.summary:
                         self.summary["test"] = self.get_3d_summary(
                             results, inputs["data"], 0, save_gt=False
                         )
-       
+
         try:
             log.info(
                 f"Overall Testing Accuracy : {self.metric_test.acc()[-1]}, mIoU : {np.nanmean(self.miou)}, f1 score : {self.metric_test.f1_score()[-1]}"
@@ -301,8 +302,8 @@ class SemanticSegmentation(BasePipeline):
     def update_tests(self, sampler, inputs, results):
         """Update tests using sampler, inputs, and results."""
         split = sampler.split
-        self.end_threshold=0.5
-        #end_threshold = 0.5
+        self.end_threshold = 0.5
+        # end_threshold = 0.5
         if self.curr_cloud_id != sampler.cloud_id:
             self.curr_cloud_id = sampler.cloud_id
             num_points = sampler.possibilities[sampler.cloud_id].shape[0]
@@ -323,8 +324,10 @@ class SemanticSegmentation(BasePipeline):
             this_possiblility[this_possiblility > self.end_threshold].shape[0]
             - self.pbar_update
         )
-        self.pbar_update = this_possiblility[this_possiblility > self.end_threshold].shape[0]
-       
+        self.pbar_update = this_possiblility[
+            this_possiblility > self.end_threshold
+        ].shape[0]
+
         self.test_probs[self.curr_cloud_id] = self.model.update_probs(
             inputs,
             results,
@@ -458,20 +461,19 @@ class SemanticSegmentation(BasePipeline):
                 if hasattr(inputs["data"], "to"):
                     inputs["data"].to(device)
                 self.optimizer.zero_grad()
-                    
-                
+
                 results = model(inputs["data"])
-            
+
                 loss, gt_labels, predict_scores = model.get_loss(
                     Loss, results, inputs, device
                 )
 
                 if predict_scores.size()[-1] == 0:
                     continue
-                
+
                 if predict_scores.size()[0] == 0 and torch.isnan(loss):
                     continue
-                
+
                 loss.backward()
                 if model.cfg.get("grad_clip_norm", -1) > 0:
                     torch.nn.utils.clip_grad_value_(
@@ -499,9 +501,7 @@ class SemanticSegmentation(BasePipeline):
                 for step, inputs in enumerate(tqdm(valid_loader, desc="validation")):
                     if hasattr(inputs["data"], "to"):
                         inputs["data"].to(device)
-                        
-                    
-                    
+
                     results = model(inputs["data"])
                     loss, gt_labels, predict_scores = model.get_loss(
                         Loss, results, inputs, device
@@ -509,7 +509,7 @@ class SemanticSegmentation(BasePipeline):
 
                     if predict_scores.size()[-1] == 0:
                         continue
-                    
+
                     if predict_scores.size()[0] == 0 and torch.isnan(loss):
                         continue
 

@@ -1,16 +1,15 @@
 import glob
-from pathlib import Path
-import os
-import os
 import logging
+import os
+from abc import ABC
+from pathlib import Path
 
-import numpy as np
 import laspy as lp
+import numpy as np
 import scipy
 
-from .customdataset import Custom3D
 from ..utils import DATASET, get_module
-from abc import ABC
+from .customdataset import Custom3D
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +45,7 @@ class TurinDataset3DSplit(ABC):
     def get_data(self, idx):
         pc_path = self.path_list[idx]
         data = lp.read(pc_path)
-        
+
         points = np.concatenate(
             [
                 np.expand_dims(data.x, axis=1),
@@ -55,9 +54,9 @@ class TurinDataset3DSplit(ABC):
             ],
             axis=1,
         )
-        
+
         points = points * self.scale - self.offset
-        
+
         feat = np.concatenate(
             [
                 np.expand_dims(data.red, axis=1),
@@ -67,40 +66,39 @@ class TurinDataset3DSplit(ABC):
             axis=1,
         )
         feat = (feat >> 8).astype(np.float32)
-        
-        
-        
-        if self.split != "test":
+
+        if self.split == "test":
             confidence = np.array(data.confidence, dtype=np.float32)
             labels = np.array(data.classification, dtype=np.int32)
             intensity = np.array(data.intensity, dtype=np.float32)
-            data = {"point": points,
+            data = {
+                "point": points,
                 "feat": feat,
                 "label": labels,
                 "confidence": confidence,
-                "intensity": intensity}
+                "intensity": intensity,
+            }
         else:
-          
+
             labels = np.array(data.classification, dtype=np.int32)
-            
+
             intensity = np.array(data.intensity, dtype=np.float32)
             if hasattr(data, "confidence"):
                 confidence = np.array(data.confidence, dtype=np.float32)
-                data ={
+                data = {
                     "point": points,
                     "feat": feat,
                     "label": labels,
                     "confidence": confidence,
-                    "intensity": intensity
+                    "intensity": intensity,
                 }
             else:
                 data = {
                     "point": points,
                     "feat": feat,
                     "label": labels,
-                    "intensity": intensity
+                    "intensity": intensity,
                 }
-       
 
         return data
 
@@ -168,7 +166,8 @@ class TurinDataset3D(Custom3D):
         )
 
     def save_test_result(
-        self, results, attr, save_features=False, save_confidence=True ):
+        self, results, attr, save_features=False, save_confidence=True
+    ):
         """Saves the output of a model.
 
         Args:
@@ -214,9 +213,11 @@ class TurinDataset3D(Custom3D):
             log.info(f"Predicted scores: {conf}")
             conf = np.max(conf, axis=-1)
             log.info(f"Confidence: {conf}")
-            
-            #controlla se esiste già il campo confidence se esiste lo sovrascrive e basta
-            confidence_exists = any(dim.name == 'confidence' for dim in las.point_format.extra_dimensions)
+
+            # controlla se esiste già il campo confidence se esiste lo sovrascrive e basta
+            confidence_exists = any(
+                dim.name == "confidence" for dim in las.point_format.extra_dimensions
+            )
             if confidence_exists:
                 las.confidence = conf
             else:
