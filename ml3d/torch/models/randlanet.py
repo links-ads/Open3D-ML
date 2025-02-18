@@ -90,9 +90,9 @@ class RandLANet(BaseModel):
         cfg = self.cfg
         self.return_features = return_features
         self.augmenter = SemsegAugmentation(cfg.augment, seed=self.rng)
-        self.weighted_confidence=weighted_confidence
-        self.use_max_confidence=use_max_confidence
-        self.use_intensity=use_intensity
+        self.weighted_confidence = weighted_confidence
+        self.use_max_confidence = use_max_confidence
+        self.use_intensity = use_intensity
 
         self.fc0 = nn.Linear(cfg.in_channels, cfg.dim_features)
         self.bn0 = nn.BatchNorm2d(cfg.dim_features, eps=1e-6, momentum=0.01)
@@ -140,21 +140,19 @@ class RandLANet(BaseModel):
             SharedMLP(32, cfg.num_classes, bn=False),
         )
         self.use_confidence = use_confidence
-        
-        if self.use_confidence==True:
-            if isinstance(confidence,(int,float)):
-                self.confidence = {i: confidence for i in range(num_classes+1)}
-            elif isinstance(confidence,(dict)):
+
+        if self.use_confidence == True:
+            if isinstance(confidence, (int, float)):
+                self.confidence = {i: confidence for i in range(num_classes + 1)}
+            elif isinstance(confidence, (dict)):
                 self.confidence = confidence
-                for i in range(num_classes):
+                for i in range(num_classes + 1):
                     if i not in self.confidence and i != 0:
-                        #default value if confidence is not provided for that class
-                        self.confidence[i] = 0.85 
+                        # default value if confidence is not provided for that class
+                        self.confidence[i] = 0.85
             else:
                 raise ValueError("confidence must be a number or a dictionary")
             print(f"confidence for each class : {self.confidence}")
-            
-            
 
     def preprocess(self, data, attr):
         cfg = self.cfg
@@ -162,61 +160,60 @@ class RandLANet(BaseModel):
         points = np.array(data["point"][:, 0:3], dtype=np.float32)
 
         if "label" not in data or data["label"] is None:
-            #qui puoi mettere le etichette diverse per le confidence puoi o mandare un valore oppure una per tutte le classi
+            # qui puoi mettere le etichette diverse per le confidence puoi o mandare un valore oppure una per tutte le classi
             labels = np.zeros((points.shape[0],), dtype=np.int32)
         else:
             labels = np.array(data["label"], dtype=np.int32).reshape((-1,))
 
-       
         if "feat" not in data or data["feat"] is None:
             feat = None
         else:
             feat = np.array(data["feat"], dtype=np.float32)
-        
-        if self.use_intensity==True:
+
+        if self.use_intensity == True:
             if "intensity" in data is not None:
-                intensity=np.array(data["intensity"],dtype=np.float32)
-            
+                intensity = np.array(data["intensity"], dtype=np.float32)
+
                 intensity = np.log1p(intensity)
-            
+
                 if feat is not None:
-                    intensity = intensity.reshape(-1, 1)  
+                    intensity = intensity.reshape(-1, 1)
                     feat = np.concatenate((feat, intensity), axis=1)
-        
-        #metti label a 0 se non ha quella confidence
+
+        # metti label a 0 se non ha quella confidence
         # if "confidence" in data or data["confidence"] is not None and self.use_confidence!=False :
-        if self.use_confidence==True:
-            if "confidence" in data or data["confidence"] is not None :
-                confidence=np.array(data["confidence"],dtype=np.float32)
-                if self.use_confidence==True:
-                    filtered_indices=[]
-                    all_filtered_indices = np.zeros(labels.shape, dtype=bool)  
+        if self.use_confidence == True:
+            if "confidence" in data and data["confidence"] is not None:
+                confidence = np.array(data["confidence"], dtype=np.float32)
+                if self.use_confidence == True:
+                    filtered_indices = []
+                    all_filtered_indices = np.zeros(labels.shape, dtype=bool)
 
                     for label in np.unique(labels):
-                        label_indices=np.where(labels==label)[0]
-                        label_confidence=confidence[label_indices]
-                        confidence_indices=label_indices[label_confidence>=self.confidence[label]]
+                        label_indices = np.where(labels == label)[0]
+                        label_confidence = confidence[label_indices]
+                        confidence_indices = label_indices[
+                            label_confidence >= self.confidence[label]
+                        ]
                         filtered_indices.append(confidence_indices)
-                        all_filtered_indices[confidence_indices] = True  
-            
+                        all_filtered_indices[confidence_indices] = True
+
                     labels[~all_filtered_indices] = 0
-        
+
                 if feat is not None:
-                    confidence = confidence.reshape(-1, 1)  
-                    feat = np.concatenate((feat, confidence), axis=1)  
+                    confidence = confidence.reshape(-1, 1)
+                    feat = np.concatenate((feat, confidence), axis=1)
             else:
-            #per ora se non c'è la confidence per esempio per gli altri dataset che non sono torino mettiamo tutti 1
+                # per ora se non c'è la confidence per esempio per gli altri dataset che non sono torino mettiamo tutti 1
                 if feat is not None:
-                    confidence = np.ones((feat.shape[0], 1), dtype=np.float32)  
-                    feat = np.concatenate((feat, confidence), axis=1) 
-       
-        
+                    confidence = np.ones((feat.shape[0], 1), dtype=np.float32)
+                    feat = np.concatenate((feat, confidence), axis=1)
+
         split = attr["split"]
-       
-        
-        #concatena alle features la confidence
+
+        # concatena alle features la confidence
         sub_confidence = None
-        
+
         if feat is None:
             sub_points, sub_labels = DataProcessing.grid_subsampling(
                 points, labels=labels, grid_size=cfg.grid_size
@@ -226,19 +223,21 @@ class RandLANet(BaseModel):
             sub_points, sub_feat, sub_labels = DataProcessing.grid_subsampling(
                 points, features=feat, labels=labels, grid_size=cfg.grid_size
             )
-            if self.use_confidence==True: sub_confidence=sub_feat[:, -1]
-            #sub_feat=sub_feat[:, :4]
-            if "intensity" in data is not None and self.use_intensity==True:
-                sub_feat=sub_feat[:, :4]
+            if self.use_confidence == True:
+                sub_confidence = sub_feat[:, -1]
+            # sub_feat=sub_feat[:, :4]
+            if "intensity" in data is not None and self.use_intensity == True:
+                sub_feat = sub_feat[:, :4]
             else:
-                sub_feat=sub_feat[:, :3]
-            
+                sub_feat = sub_feat[:, :3]
+
         data = dict()
         search_tree = KDTree(sub_points)
 
         data["point"] = sub_points
         data["feat"] = sub_feat
-        if self.use_confidence==True: data["confidence"]=sub_confidence
+        if self.use_confidence == True:
+            data["confidence"] = sub_confidence
         data["label"] = sub_labels
         data["search_tree"] = search_tree
 
@@ -267,7 +266,7 @@ class RandLANet(BaseModel):
         label = data["label"]
         feat = data["feat"] if data["feat"] is not None else None
         tree = data["search_tree"]
-        confidence=data["confidence"] if "confidence" in data else None
+        confidence = data["confidence"] if "confidence" in data else None
 
         selected_idxs, center_point = self.trans_point_sampler(
             pc=pc,
@@ -289,14 +288,12 @@ class RandLANet(BaseModel):
             confidence_sub = confidence[selected_idxs]
             confidence = confidence_sub.copy()
 
-       
         augment_cfg = self.cfg.get("augment", {}).copy()
         val_augment_cfg = {}
         if "recenter" in augment_cfg:
             val_augment_cfg["recenter"] = augment_cfg.pop("recenter")
         if "normalize" in augment_cfg:
             val_augment_cfg["normalize"] = augment_cfg.pop("normalize")
-      
 
         self.augmenter.augment(pc, feat, label, val_augment_cfg, seed=rng)
 
@@ -338,7 +335,8 @@ class RandLANet(BaseModel):
         inputs["sub_idx"] = input_pools
         inputs["interp_idx"] = input_up_samples
         inputs["features"] = feat
-        if self.use_confidence==True: inputs["confidence"]=confidence
+        if self.use_confidence == True:
+            inputs["confidence"] = confidence
         inputs["point_inds"] = selected_idxs
         inputs["labels"] = label.astype(np.int64)
 
@@ -485,20 +483,28 @@ class RandLANet(BaseModel):
 
         """
         cfg = self.cfg
-        #lo fai per tutti perche per gli altri dataset che non hanno confidence viene posta di default a 0
+        # lo fai per tutti perche per gli altri dataset che non hanno confidence viene posta di default a 0
         labels = inputs["data"]["labels"]
-        if self.use_confidence==True:
-            confidence=inputs["data"]["confidence"]
-            scores, labels,confidence = filter_valid_label(
-                results, labels, cfg.num_classes, cfg.ignored_label_inds, device,confidence)
+        if self.use_confidence == True:
+            confidence = inputs["data"]["confidence"]
+            scores, labels, confidence = filter_valid_label(
+                results,
+                labels,
+                cfg.num_classes,
+                cfg.ignored_label_inds,
+                device,
+                confidence,
+            )
         else:
-            scores, labels,confidence = filter_valid_label(
+            scores, labels, confidence = filter_valid_label(
                 results, labels, cfg.num_classes, cfg.ignored_label_inds, device
             )
-        
+
         if self.weighted_confidence:
-            loss = Loss.weighted_confidence_CrossEntropyLoss(scores, labels,confidence,self.confidence)
-            
+            loss = Loss.weighted_confidence_CrossEntropyLoss(
+                scores, labels, confidence, self.confidence
+            )
+
         else:
             loss = Loss.weighted_CrossEntropyLoss(scores, labels)
 
@@ -578,9 +584,9 @@ class RandLANet(BaseModel):
             updated probabilities
 
         """
-       
+
         self.test_smooth = 0.95
-      
+
         for b in range(results.size()[0]):
 
             result = torch.reshape(results[b], (-1, self.cfg.num_classes))
@@ -589,13 +595,23 @@ class RandLANet(BaseModel):
             inds = inputs["data"]["point_inds"][b]
             old_probs = test_probs[inds]
             mask = (old_probs != 0).any(axis=1)
-            
+
             if self.use_max_confidence:
-                new_probs = np.where(mask[:, None], np.maximum(self.test_smooth * old_probs + (1 - self.test_smooth) * probs, old_probs), probs)
+                new_probs = np.where(
+                    mask[:, None],
+                    np.maximum(
+                        self.test_smooth * old_probs + (1 - self.test_smooth) * probs,
+                        old_probs,
+                    ),
+                    probs,
+                )
                 test_probs[inds] = new_probs
             else:
-                test_probs[inds] = np.where(mask[:, None], self.test_smooth * old_probs + (1 - self.test_smooth) * probs, probs)
-            
+                test_probs[inds] = np.where(
+                    mask[:, None],
+                    self.test_smooth * old_probs + (1 - self.test_smooth) * probs,
+                    probs,
+                )
 
         return test_probs
 
@@ -673,7 +689,7 @@ class RandLANetMixer(RandLANet):
             results, labels, cfg.num_classes, cfg.ignored_label_inds, device
         )
 
-        #devi sommare due loss diverse ma con diversi pesi cioè che quella con la confidence deve valere meno
+        # devi sommare due loss diverse ma con diversi pesi cioè che quella con la confidence deve valere meno
         loss = Loss.weighted_CrossEntropyLoss(scores, labels)
 
         return loss, labels, scores
