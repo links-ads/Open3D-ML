@@ -239,6 +239,7 @@ class SemanticSegmentation(BasePipeline):
         self.ori_test_probs = []
         self.ori_test_labels = []
 
+
         record_summary = cfg.get("summary").get("record_for", [])
         log.info("Started testing")
 
@@ -265,7 +266,7 @@ class SemanticSegmentation(BasePipeline):
                         gt_labels = gt_labels[inds]
 
                     if (gt_labels > 0).any():
-                       
+                 
                         valid_scores, valid_labels,_ = filter_valid_label(
                             torch.tensor(inference_result["predict_scores"]).to(device),
                             torch.tensor(gt_labels).to(device),
