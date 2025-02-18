@@ -12,33 +12,33 @@ dataset:
     - 0
   use_cache: true
   datasets:
-    - name: TurinDataset3D
-      dataset_path: /nfs/home/intini/Open3D-ML/data/digitwin/sansalvario_crop/nuova_consegna_2507/lidar_aereo_man_labeled
-      num_points: 65536
-      train_dir: test #cartella con label e confidence
-      val_dir: test #cartella con label e confidence
-      test_dir: test #cartella con label e confidence
-      offset: [396000, 4989500, 0]
-      class_map:
-        0: 0 # Ignored class (low confidence)
-        1: 1 # Soil
-        2: 2 #Terrain
-        3: 3 # Vegetation
-        4: 4 # Building
-        5: 5 # Street elements
-        6: 6 # Water
-    # - name: SUMDataset
-    #   dataset_path: data/digitwin/SUM/1.0/SUM_Helsinki_C6_pcl_300
-    #   train_files: train/*
-    #   val_files: validate/*
-    #   test_files: test/*
+    # - name: TurinDataset3D
+    #   dataset_path: /nfs/home/intini/Open3D-ML/data/digitwin/sansalvario_crop/nuova_consegna_2507/lidar_aereo_man_labeled
+    #   num_points: 65536
+    #   train_dir: test #cartella con label e confidence
+    #   val_dir: test #cartella con label e confidence
+    #   test_dir: test #cartella con label e confidence
+    #   offset: [396000, 4989500, 0]
     #   class_map:
-    #     1: 0
-    #     2: 3
-    #     3: 4
-    #     4: 6
-    #     5: 5
-    #     6: 0
+    #     0: 0 # Ignored class (low confidence)
+    #     1: 1 # Soil
+    #     2: 2 #Terrain
+    #     3: 3 # Vegetation
+    #     4: 4 # Building
+    #     5: 5 # Street elements
+    #     6: 6 # Water
+    - name: SUMDataset
+      dataset_path: data/digitwin/SUM/1.0/SUM_Helsinki_C6_pcl_300
+      train_files: train/*
+      val_files: validate/*
+      test_files: test/*
+      class_map:
+        1: 0
+        2: 3
+        3: 4
+        4: 6
+        5: 5
+        6: 0
     # - name: SensatUrban
     #   dataset_path: data/digitwin/sensatUrban/ply
     #   class_map:
@@ -98,159 +98,159 @@ dataset:
     #     - test/cambridge_block_22.ply
     #     - test/cambridge_block_16.ply
     #     - test/cambridge_block_27.ply
-    # - name: Toronto3D
-    #   dataset_path: data/digitwin/Toronto3D
-    #   class_map:
-    #     1: 2
-    #     2: 2
-    #     3: 3
-    #     4: 4
-    #     5: 5
-    #     6: 5
-    #     7: 5
-    #     8: 4
-    #   test_files:
-    #     - L002.ply
-    #   train_files:
-    #     - L001.ply
-    #     - L003.ply
-    #     - L004.ply
-    #   val_files:
-    #     - L002.ply
-    # - name: ECLAIRDataset
-    #   dataset_path: data/digitwin/ECLAIR
-    #   train_files: train.txt
-    #   val_files: val.txt
-    #   test_files: test.txt
-    #   class_map:
-    #     0: 0
-    #     1: 0
-    #     2: 0
-    #     3: 3
-    #     4: 4
-    #     5: 0
-    #     6: 5
-    #     7: 5
-    #     8: 5
-    #     9: 4
-    #     10: 4
-    #     11: 5
-    # - name: FRACTALDataset
-    #   dataset_path: data/digitwin/FRACTAL/extracted_data
-    #   train_dir: train
-    #   val_dir: val
-    #   test_dir: test
-    #   class_map:
-    #     1: 0
-    #     2: 0
-    #     3: 1
-    #     4: 3
-    #     5: 3
-    #     6: 4
-    #     9: 6
-    #     17: 2
-    #     64: 5
-    #     65: 0
-    #     66: 0
-    # - name: STPLS3D
-    #   dataset_path: data/digitwin/STPLS3D
-    #   class_map:
-    #     0: 2
-    #     1: 4
-    #     2: 3
-    #     3: 3
-    #     4: 3
-    #     5: 5
-    #     6: 5
-    #     7: 5
-    #     8: 5
-    #     9: 5
-    #     10: 5
-    #     11: 5
-    #     12: 5
-    #     13: 5
-    #     14: 4
-    #     15: 2
-    #     17: 4
-    #     18: 1
-    #     19: 1
-    #   train_files:
-    #     - RealWorldData/OCCC_points.ply
-    #     - RealWorldData/RA_points.ply
-    #     - Synthetic_v3/1_points_GTv3.ply
-    #     - Synthetic_v3/2_points_GTv3.ply
-    #     - Synthetic_v3/3_points_GTv3.ply
-    #     - Synthetic_v3/4_points_GTv3.ply
-    #     - Synthetic_v3/5_points_GTv3.ply
-    #     - Synthetic_v3/6_points_GTv3.ply
-    #     - Synthetic_v3/7_points_GTv3.ply
-    #     - Synthetic_v3/8_points_GTv3.ply
-    #     - Synthetic_v3/9_points_GTv3.ply
-    #     - Synthetic_v3/10_points_GTv3.ply
-    #     - Synthetic_v3/11_points_GTv3.ply
-    #     - Synthetic_v3/12_points_GTv3.ply
-    #     - Synthetic_v3/13_points_GTv3.ply
-    #     - Synthetic_v3/14_points_GTv3.ply
-    #     - Synthetic_v3/15_points_GTv3.ply
-    #     - Synthetic_v3/16_points_GTv3.ply
-    #     - Synthetic_v3/17_points_GTv3.ply
-    #     - Synthetic_v3/18_points_GTv3.ply
-    #     - Synthetic_v3/19_points_GTv3.ply
-    #   val_files:
-    #     - RealWorldData/USC_points.ply
-    #     - Synthetic_v3/20_points_GTv3.ply
-    #     - Synthetic_v3/21_points_GTv3.ply
-    #     - Synthetic_v3/22_points_GTv3.ply
-    #   test_files:
-    #     - RealWorldData/WMSC_points.ply
-    #     - Synthetic_v3/1_points_GTv3.ply
-    #     - Synthetic_v3/23_points_GTv3.ply
-    #     - Synthetic_v3/24_points_GTv3.ply
-    #     - Synthetic_v3/25_points_GTv3.ply
-    # - name: Swiss3D
-    #   dataset_path: data/digitwin/Swiss3D/Medium
-    #   class_map:
-    #     1: 0
-    #     2: 4
-    #     3: 5
-    #     4: 3
-    #     5: 5
-    #   train_files:
-    #     - 13_Zurich_16_34318_-22951.ply
-    #     - 14_Zurich_16_34319_-22951.ply
-    #     - 15_Zurich_16_34319_-22952.ply
-    #     - 16_Zurich_16_34322_-22951.ply
-    #     - 3_Davos_16_34557_-23105.ply
-    #     - 4_Davos_16_34558_-23104.ply
-    #     - 5_Davos_16_34558_-23105.ply
-    #     - 10_Zug_16_34320_-23004.ply
-    #     - 6_Zug_16_34307_-23001.ply
-    #     - 7_Zug_16_34307_-23002.ply
-    #   val_files:
-    #     - 12_Zurich_16_34318_-22950.ply
-    #     - 2_Davos_16_34557_-23104.ply
-    #     - 8_Zug_16_34308_-23001.ply
-    #   test_files:
-    #     - 9_Zug_16_34308_-23002.ply
-    #     - 11_Zurich_16_34317_-22952.ply
-    #     - 1_Davos_16_34556_-23105.ply
-    # - name: HessigheimDataset
-    #   dataset_path: data/digitwin/Hessigheim/March2018
-    #   train_dir: training
-    #   val_dir: validation
-    #   test_dir: test
-    #   class_map:
-    #     0: 1
-    #     1: 2
-    #     2: 5
-    #     3: 5
-    #     4: 4
-    #     5: 4
-    #     6: 3
-    #     7: 3
-    #     8: 1
-    #     9: 4
-    #     10: 4
+    - name: Toronto3D
+      dataset_path: data/digitwin/Toronto3D
+      class_map:
+        1: 2
+        2: 2
+        3: 3
+        4: 4
+        5: 5
+        6: 5
+        7: 5
+        8: 4
+      test_files:
+        - L002.ply
+      train_files:
+        - L001.ply
+        - L003.ply
+        - L004.ply
+      val_files:
+        - L002.ply
+    - name: ECLAIRDataset
+      dataset_path: data/digitwin/ECLAIR
+      train_files: train.txt
+      val_files: val.txt
+      test_files: test.txt
+      class_map:
+        0: 0
+        1: 0
+        2: 0
+        3: 3
+        4: 4
+        5: 0
+        6: 5
+        7: 5
+        8: 5
+        9: 4
+        10: 4
+        11: 5
+    - name: FRACTALDataset
+      dataset_path: data/digitwin/FRACTAL/extracted_data
+      train_dir: train
+      val_dir: val
+      test_dir: test
+      class_map:
+        1: 0
+        2: 0
+        3: 1
+        4: 3
+        5: 3
+        6: 4
+        9: 6
+        17: 2
+        64: 5
+        65: 0
+        66: 0
+    - name: STPLS3D
+      dataset_path: data/digitwin/STPLS3D
+      class_map:
+        0: 2
+        1: 4
+        2: 3
+        3: 3
+        4: 3
+        5: 5
+        6: 5
+        7: 5
+        8: 5
+        9: 5
+        10: 5
+        11: 5
+        12: 5
+        13: 5
+        14: 4
+        15: 2
+        17: 4
+        18: 1
+        19: 1
+      train_files:
+        - RealWorldData/OCCC_points.ply
+        - RealWorldData/RA_points.ply
+        - Synthetic_v3/1_points_GTv3.ply
+        - Synthetic_v3/2_points_GTv3.ply
+        - Synthetic_v3/3_points_GTv3.ply
+        - Synthetic_v3/4_points_GTv3.ply
+        - Synthetic_v3/5_points_GTv3.ply
+        - Synthetic_v3/6_points_GTv3.ply
+        - Synthetic_v3/7_points_GTv3.ply
+        - Synthetic_v3/8_points_GTv3.ply
+        - Synthetic_v3/9_points_GTv3.ply
+        - Synthetic_v3/10_points_GTv3.ply
+        - Synthetic_v3/11_points_GTv3.ply
+        - Synthetic_v3/12_points_GTv3.ply
+        - Synthetic_v3/13_points_GTv3.ply
+        - Synthetic_v3/14_points_GTv3.ply
+        - Synthetic_v3/15_points_GTv3.ply
+        - Synthetic_v3/16_points_GTv3.ply
+        - Synthetic_v3/17_points_GTv3.ply
+        - Synthetic_v3/18_points_GTv3.ply
+        - Synthetic_v3/19_points_GTv3.ply
+      val_files:
+        - RealWorldData/USC_points.ply
+        - Synthetic_v3/20_points_GTv3.ply
+        - Synthetic_v3/21_points_GTv3.ply
+        - Synthetic_v3/22_points_GTv3.ply
+      test_files:
+        - RealWorldData/WMSC_points.ply
+        - Synthetic_v3/1_points_GTv3.ply
+        - Synthetic_v3/23_points_GTv3.ply
+        - Synthetic_v3/24_points_GTv3.ply
+        - Synthetic_v3/25_points_GTv3.ply
+    - name: Swiss3D
+      dataset_path: data/digitwin/Swiss3D/Medium
+      class_map:
+        1: 0
+        2: 4
+        3: 5
+        4: 3
+        5: 5
+      train_files:
+        - 13_Zurich_16_34318_-22951.ply
+        - 14_Zurich_16_34319_-22951.ply
+        - 15_Zurich_16_34319_-22952.ply
+        - 16_Zurich_16_34322_-22951.ply
+        - 3_Davos_16_34557_-23105.ply
+        - 4_Davos_16_34558_-23104.ply
+        - 5_Davos_16_34558_-23105.ply
+        - 10_Zug_16_34320_-23004.ply
+        - 6_Zug_16_34307_-23001.ply
+        - 7_Zug_16_34307_-23002.ply
+      val_files:
+        - 12_Zurich_16_34318_-22950.ply
+        - 2_Davos_16_34557_-23104.ply
+        - 8_Zug_16_34308_-23001.ply
+      test_files:
+        - 9_Zug_16_34308_-23002.ply
+        - 11_Zurich_16_34317_-22952.ply
+        - 1_Davos_16_34556_-23105.ply
+    - name: HessigheimDataset
+      dataset_path: data/digitwin/Hessigheim/March2018
+      train_dir: training
+      val_dir: validation
+      test_dir: test
+      class_map:
+        0: 1
+        1: 2
+        2: 5
+        3: 5
+        4: 4
+        5: 4
+        6: 3
+        7: 3
+        8: 1
+        9: 4
+        10: 4
 
 model:
   name: PointTransformer
@@ -296,4 +296,5 @@ pipeline:
   num_workers: 0
   pin_memory: false
   val_batch_size: 2
+  inds: true  
 

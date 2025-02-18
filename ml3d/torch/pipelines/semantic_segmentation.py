@@ -237,7 +237,6 @@ class SemanticSegmentation(BasePipeline):
         self.test_probs = []
         self.ori_test_probs = []
         self.ori_test_labels = []
-        self.miou=[]
 
         record_summary = cfg.get("summary").get("record_for", [])
         log.info("Started testing")
@@ -267,8 +266,7 @@ class SemanticSegmentation(BasePipeline):
                    
                    
                     if (gt_labels > 0).any():
-                        log.info(f"unique gt_labels: {np.unique(gt_labels)}")
-                        log.info(f"unique predict_labels: {np.unique(inference_result['predict_labels'])}")
+                       
                         valid_scores, valid_labels,_ = filter_valid_label(
                             torch.tensor(inference_result["predict_scores"]).to(device),
                             torch.tensor(gt_labels).to(device),
@@ -276,12 +274,15 @@ class SemanticSegmentation(BasePipeline):
                             model.cfg.ignored_label_inds,
                             device,
                         )
-                        #stampare cloud id
-                        self.metric_test.update(valid_scores, valid_labels)
+                        log.info(f"info {attr}")
+                        log.info(f"valid labels gt : {np.unique(valid_labels.cpu().numpy())}")
+                        predict_labels = np.argmax(valid_scores.cpu().numpy(), axis=1)
+                        confusionMatrix=self.metric_test.update(valid_scores, valid_labels)
+                        log.info(f"confusion matrix : {confusionMatrix}")
+                        log.info(f"predict labels : {np.unique(predict_labels)}") 
                         log.info(f"Accuracy : {self.metric_test.acc()}") 
                         log.info(f"IoU : {self.metric_test.iou()}")
                         log.info(f"f1 score : {self.metric_test.f1_score()}")
-                        self.miou.append(self.metric_test.iou()[-1])
                     #dataset.save_test_result(inference_result, attr)
                     # Save only for the first batch
                     if "test" in record_summary and "test" not in self.summary:
@@ -291,7 +292,7 @@ class SemanticSegmentation(BasePipeline):
        
         try:
             log.info(
-                f"Overall Testing Accuracy : {self.metric_test.acc()[-1]}, mIoU : {np.nanmean(self.miou)}, f1 score : {self.metric_test.f1_score()[-1]}"
+                f"Overall Testing Accuracy : {self.metric_test.acc()[-1]}, mIoU : {self.metric_test.iou()[-1]}, f1 score : {self.metric_test.f1_score()[-1]}"
             )
         except:
             log.info(f"Cannot estimate overall accuracy and IoU")

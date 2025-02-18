@@ -23,6 +23,7 @@ class SemSegMetric(object):
         else:
             assert self.confusion_matrix.shape == conf.shape
             self.confusion_matrix += conf
+        return self.confusion_matrix
 
     def acc(self):
         """Compute the per-class accuracies and the overall accuracy.

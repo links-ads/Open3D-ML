@@ -283,7 +283,8 @@ class SparseConvUnet(BaseModel):
         if feat is not None:
             input['feat'] = torch.from_numpy(feat)
         input['label'] = torch.from_numpy(labels)
-        input['point_inds'] = torch.from_numpy(selected_idxs)
+        #input['proj_inds'] = torch.from_numpy(selected_idxs)
+        input['point_inds']=torch.from_numpy(selected_idxs).to(torch.int64)
         return input
 
     # def update_probs(self, inputs, results, test_probs, test_labels):
