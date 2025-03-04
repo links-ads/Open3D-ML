@@ -26,6 +26,10 @@ def filter_valid_label(scores, labels, num_classes, ignored_label_inds, device,c
     if confidence is not None and valid_confidence is not None:
         valid_confidence = torch.gather(valid_confidence, 0, valid_idx)
 
+    # for ign_label in ignored_label_inds:
+    #     if ign_label >= 0:
+    #         valid_scores = torch.cat([valid_scores[:, :ign_label], valid_scores[:, ign_label + 1:]], dim=1)
+
     # Reduce label values in the range of logit shape
     reducing_list = torch.arange(0, num_classes, dtype=torch.int64)
     inserted_value = torch.zeros([1], dtype=torch.int64)

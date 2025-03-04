@@ -57,11 +57,11 @@ class RandLANet(BaseModel):
         ckpt_path=None,
         augment={},
         return_features=False,
-        use_confidence=False,
+        use_confidence=True,
         confidence={},
         weighted_confidence=False,
-        use_max_confidence=False,
-        use_intensity=False,
+        use_max_confidence=True,
+        use_intensity=True,
         **kwargs,
     ):
 
@@ -190,6 +190,8 @@ class RandLANet(BaseModel):
                     all_filtered_indices = np.zeros(labels.shape, dtype=bool)
 
                     for label in np.unique(labels):
+                        if label == 0:
+                            continue
                         label_indices = np.where(labels == label)[0]
                         label_confidence = confidence[label_indices]
                         confidence_indices = label_indices[

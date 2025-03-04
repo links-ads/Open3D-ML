@@ -68,16 +68,26 @@ class TurinDataset3DSplit(ABC):
         feat = (feat >> 8).astype(np.float32)
 
         if self.split == "test":
-            confidence = np.array(data.confidence, dtype=np.float32)
             labels = np.array(data.classification, dtype=np.int32)
             intensity = np.array(data.intensity, dtype=np.float32)
-            data = {
-                "point": points,
-                "feat": feat,
-                "label": labels,
-                "confidence": confidence,
-                "intensity": intensity,
-            }
+            if hasattr(data, "confidence"):
+                confidence = np.array(data.confidence, dtype=np.float32)
+                data = {
+                    "point": points,
+                    "feat": feat,
+                    "label": labels,
+                    "confidence": confidence,
+                    "intensity": intensity,
+                }
+            else:
+                data = {
+                    "point": points,
+                    "feat": feat,
+                    "label": labels,
+                    "intensity": intensity,
+                }
+          
+           
         else:
 
             labels = np.array(data.classification, dtype=np.int32)
@@ -181,10 +191,11 @@ class TurinDataset3D(Custom3D):
         os.makedirs(path, exist_ok=True)
 
         pred = results["predict_labels"]
+        pred+=1
 
-        if cfg.ignored_label_inds is not None and len(cfg.ignored_label_inds) > 0:
-            for ign in cfg.ignored_label_inds:
-                pred[pred >= ign] += 1
+        # if cfg.ignored_label_inds is not None and len(cfg.ignored_label_inds) > 0:
+        #     for ign in cfg.ignored_label_inds:
+        #         pred[pred >= ign] += 1
 
         las = lp.read(attr["path"])
         assert len(las.x) == len(

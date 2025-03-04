@@ -1,4 +1,5 @@
 from pathlib import Path
+import logging
 import laspy as lp
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,8 +8,18 @@ import seaborn as sns
 from argparse import ArgumentParser
 from matplotlib.ticker import FuncFormatter
 
+logging.basicConfig(level=logging.INFO,format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+#single file
 def distribution_confidence(file: Path, output_dir: Path):
-    
+    class_names = {
+    1: 'Soil',
+    2: 'Terrain',
+    3: 'Vegetation',
+    4: 'Building',
+    5: 'Street Element',
+    6: 'Water',
+    }
     data = lp.read(str(file))
     
     
@@ -23,36 +34,49 @@ def distribution_confidence(file: Path, output_dir: Path):
     sns.set_theme(style='whitegrid')
     
     def y_formatter(x, pos):
-        if x >= 1e6:
-            return f'{x/1e6:.1f} x 10e6'
-        else:
-            return f'{int(x)}'
+        return f'{x:.1e}'
     
-    for label in unique_labels:
-      
+    weighted_means = {}
+    
+    colors = ['lightgreen', 'gray', 'darkgreen', 'brown', 'purple', 'blue']
+    
+    captions = ['(a)', '(b)', '(c)', '(d)', '(e)', '(f)']
+    
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))  # Crea una griglia 2x3
+    axes = axes.flatten() 
+    for i, label in enumerate(unique_labels):
         label_mask = (labels == label)
         label_confidence = confidence[label_mask]
         
-
         mean_confidence = np.mean(label_confidence)
         
-       
-        plt.figure(figsize=(10, 6))
-        sns.histplot(label_confidence, bins=30, kde=True, color='orange', label=f'Class {label}',stat='count')
-        plt.axvline(mean_confidence, color='red', linestyle='dashed', linewidth=1)
-        plt.title(f'Distribution of Confidence for Class {label}', fontsize=15)
-        plt.xlabel('Confidence', fontsize=12)
-        plt.ylabel('Number of points', fontsize=12)
-        plt.gca().yaxis.set_major_formatter(FuncFormatter(y_formatter))
-        plt.legend()
+        unique_confidences, counts = np.unique(label_confidence, return_counts=True)
+        weighted_mean_confidence = np.average(unique_confidences, weights=counts)
         
+        weighted_means[label] = weighted_mean_confidence
         
-      
-        output_file = output_dir / f'class_{label}_confidence.png'
-        plt.savefig(output_file)
-        plt.close()
+        ax = axes[i]
+        sns.histplot(label_confidence, bins=20, kde=True, color=colors[i], label=class_names[label], stat='count', ax=ax,alpha=1.0)
+        
+        ax.set_title(f'Distribution of Confidence for {class_names[label]}', fontsize=15)
+        ax.set_xlabel('Confidence', fontsize=12)
+        ax.set_ylabel('Number of points', fontsize=12)
+        ax.yaxis.set_major_formatter(FuncFormatter(y_formatter))
+        ax.legend()
+        ax.grid(False)
+
+        ax.text(0.5, -0.15, captions[i], transform=ax.transAxes, fontsize=14, ha='center', va='top')
     
-   
+    plt.subplots_adjust(wspace=0.4, hspace=0.4)
+     
+    plt.tight_layout()
+    output_file = output_dir / 'all_classes_confidence.png'
+    plt.savefig(output_file)
+    plt.close()
+        
+        
+    return weighted_means
+
 
 parser = ArgumentParser()
 
@@ -65,8 +89,34 @@ args = parser.parse_args()
 
 args.OUT.mkdir(parents=True, exist_ok=True)
 
+all_weighted_means = []
 if args.INPUT.is_dir():
     for file in args.INPUT.iterdir():
-        distribution_confidence(file, args.OUT)
+        weighted_means=distribution_confidence(file, args.OUT)
+        all_weighted_means.append(weighted_means)
 else:
-    distribution_confidence(args.INPUT, args.OUT)
+    weighted_means = distribution_confidence(args.INPUT, args.OUT)
+    all_weighted_means.append(weighted_means)
+   
+total_means = {}
+for wm in all_weighted_means:
+    for label, mean in wm.items():
+        if label not in total_means:
+            total_means[label] = []
+        total_means[label].append(mean)
+
+average_means = {}
+for label, means in total_means.items():
+    average_means[label] = np.mean(means)
+
+output_log_file=args.OUT / 'average_confidence.txt'
+with open(output_log_file, 'w') as f:
+    f.write('{')
+    for label, mean in average_means.items():
+        f.write(f'{label}: {mean},')
+    f.write('}')
+
+logger.info(f'Average weighted means: {average_means}')
+logger.info(f'Summary written to {output_log_file}')
+
+

@@ -3,21 +3,31 @@ dataset:
   steps_per_epoch_train: 100
   steps_per_epoch_valid: 10
   test_result_folder: ./test
-  cache_dir: ./dataset_cache/concat_baseline
-  class_weights: [162584717, 41423858, 596213386, 1498588107, 44283675, 354043039]
+  cache_dir: ./dataset_cache
+  class_weights: [831613596,319885857,1534944055,2604888915,137576607, 361131880]
   num_classes: 6
   num_points: 65536
   # Taxonomy is Soil, Terrain, Vegetation, Building, Street Element, Water
-  ignored_label_inds:
-    - 0
+  ignored_label_inds: [0]
   use_cache: true
   datasets:
+  # - name: SUMDataset
+  #   dataset_path: data/digitwin/SUM/1.0/SUM_Helsinki_C6_pcl_300
+  #   train_files: train/*
+  #   val_files: validate/*
+  #   test_files: test/*
+  #   class_map:
+  #       1: 0
+  #       2: 3
+  #       3: 4
+  #       4: 6
+  #       5: 5
+  #       6: 0
     # - name: TurinDataset3D
-    #   dataset_path: /nfs/home/intini/Open3D-ML/data/digitwin/sansalvario_crop/nuova_consegna_2507/lidar_aereo_man_labeled
-    #   num_points: 65536
-    #   train_dir: test #cartella con label e confidence
-    #   val_dir: test #cartella con label e confidence
-    #   test_dir: test #cartella con label e confidence
+    #   dataset_path: /nfs/home/intini/Open3D-ML/data/digitwin/sansalvario_crop/nuova_consegna_2507/lidar_split
+    #   train_dir: train #cartella con label e confidence
+    #   val_dir: val #cartella con label e confidence
+    #   test_dir: train #cartella con label e confidence
     #   offset: [396000, 4989500, 0]
     #   class_map:
     #     0: 0 # Ignored class (low confidence)
@@ -27,81 +37,70 @@ dataset:
     #     4: 4 # Building
     #     5: 5 # Street elements
     #     6: 6 # Water
-    - name: Toronto3D
-      dataset_path: data/digitwin/Toronto3D
-      class_map:
-        1: 2
-        2: 2
-        3: 3
-        4: 4
-        5: 5
-        6: 5
-        7: 5
-        8: 4
-      test_files:
-        - L002.ply
-      train_files:
-        - L001.ply
-        - L003.ply
-        - L004.ply
-      val_files:
-        - L002.ply
-    - name: SUMDataset
-      dataset_path: data/digitwin/SUM/1.0/SUM_Helsinki_C6_pcl_300
-      train_files: train/*
-      val_files: validate/*
-      test_files: test/*
-      class_map:
-        1: 0
-        2: 3
-        3: 4
-        4: 6
-        5: 5
-        6: 0
-    - name: Swiss3D
-      dataset_path: data/digitwin/Swiss3D/Medium
-      class_map:
-        1: 0
-        2: 4
-        3: 5
-        4: 3
-        5: 5
-      train_files:
-          - 13_Zurich_16_34318_-22951.ply
-          - 14_Zurich_16_34319_-22951.ply
-          - 15_Zurich_16_34319_-22952.ply
-          - 16_Zurich_16_34322_-22951.ply
-          - 3_Davos_16_34557_-23105.ply
-          - 4_Davos_16_34558_-23104.ply
-          - 5_Davos_16_34558_-23105.ply
-          - 10_Zug_16_34320_-23004.ply
-          - 6_Zug_16_34307_-23001.ply
-          - 7_Zug_16_34307_-23002.ply
-      val_files:
-          - 12_Zurich_16_34318_-22950.ply
-          - 2_Davos_16_34557_-23104.ply
-          - 8_Zug_16_34308_-23001.ply
-      test_files:
-          - 9_Zug_16_34308_-23002.ply
-          - 11_Zurich_16_34317_-22952.ply
-          - 1_Davos_16_34556_-23105.ply
-    - name: HessigheimDataset
-      dataset_path: data/digitwin/Hessigheim/March2018
-      train_dir: training
-      val_dir: validation
-      test_dir: test
-      class_map:
-        0: 1
-        1: 2
-        2: 5
-        3: 5
-        4: 4
-        5: 4
-        6: 3
-        7: 3
-        8: 1
-        9: 4
-        10: 4
+    # - name: Toronto3D
+    #   dataset_path: data/digitwin/Toronto3D
+    #   class_map:
+    #     1: 2
+    #     2: 2
+    #     3: 3
+    #     4: 4
+    #     5: 5
+    #     6: 5
+    #     7: 5
+    #     8: 4
+    #   test_files:
+    #     - L002.ply
+    #   train_files:
+    #     - L001.ply
+    #     - L003.ply
+    #     - L004.ply
+    #   val_files:
+    #     - L002.ply
+   
+    # - name: Swiss3D
+    #   dataset_path: data/digitwin/Swiss3D/Medium
+    #   class_map:
+    #     1: 0
+    #     2: 4
+    #     3: 5
+    #     4: 3
+    #     5: 5
+    #   train_files:
+    #       - 13_Zurich_16_34318_-22951.ply
+    #       - 14_Zurich_16_34319_-22951.ply
+    #       - 15_Zurich_16_34319_-22952.ply
+    #       - 16_Zurich_16_34322_-22951.ply
+    #       - 3_Davos_16_34557_-23105.ply
+    #       - 4_Davos_16_34558_-23104.ply
+    #       - 5_Davos_16_34558_-23105.ply
+    #       - 10_Zug_16_34320_-23004.ply
+    #       - 6_Zug_16_34307_-23001.ply
+    #       - 7_Zug_16_34307_-23002.ply
+    #   val_files:
+    #       - 12_Zurich_16_34318_-22950.ply
+    #       - 2_Davos_16_34557_-23104.ply
+    #       - 8_Zug_16_34308_-23001.ply
+    #   test_files:
+    #       - 9_Zug_16_34308_-23002.ply
+    #       - 11_Zurich_16_34317_-22952.ply
+    #       - 1_Davos_16_34556_-23105.ply
+    # - name: HessigheimDataset
+    #   dataset_path: data/digitwin/Hessigheim/March2018
+    #   train_dir: training
+    #   val_dir: validation
+    #   test_dir: test
+    #   class_map:
+    #     0: 1
+    #     1: 2
+    #     2: 5
+    #     3: 5
+    #     4: 4
+    #     5: 4
+    #     6: 3
+    #     7: 3
+    #     8: 1
+    #     9: 4
+    #     10: 4
     - name: STPLS3D
       dataset_path: data/digitwin/STPLS3D
       class_map:
@@ -131,23 +130,23 @@ dataset:
         - RealWorldData/USC_points.ply
       test_files:
         - RealWorldData/WMSC_points.ply
-    - name: FRACTALDataset
-      dataset_path: data/digitwin/FRACTAL/extracted_data
-      train_dir: train
-      val_dir: val
-      test_dir: test
-      class_map:
-        1: 0
-        2: 0
-        3: 1
-        4: 3
-        5: 3
-        6: 4
-        9: 6
-        17: 2
-        64: 5
-        65: 0
-        66: 0
+    # - name: FRACTALDataset
+    #   dataset_path: data/digitwin/FRACTAL/extracted_data
+    #   train_dir: train
+    #   val_dir: val
+    #   test_dir: test
+    #   class_map:
+    #     1: 0
+    #     2: 0
+    #     3: 1
+    #     4: 3
+    #     5: 3
+    #     6: 4
+    #     9: 6
+    #     17: 2
+    #     64: 5
+    #     65: 0
+    #     66: 0
     # - name: SensatUrban
     #   dataset_path: data/digitwin/sensatUrban/ply
     #   class_map:

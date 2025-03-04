@@ -1,13 +1,12 @@
 dataset:
   name: TurinDataset3D
   cache_dir: ./dataset_cache
-  dataset_path: data/digitwin/sansalvario_crop
-  class_weights: [1, 1, 1, 1, 1, 1]
+  dataset_path: /nfs/home/intini/Open3D-ML/test/turin_confidence_iter0/dataset
+  class_weights: [1, 1, 1, 1, 1,1]
   num_classes: 6
   num_points: 65536
-  ignored_label_inds:
-    - 0
-  test_dir: train 
+  ignored_label_inds: [0]
+  test_dir: train
   test_result_folder: ./test
   train_dir: train
   use_cache: true
@@ -25,7 +24,9 @@ model:
   ignored_label_inds: [0]
   sub_sampling_ratio: [4, 4, 4, 4, 2]
   use_confidence: true
-  in_channels: 6
+  confidence: {1: 0.1, 2: 0.6, 3: 0.8, 4: 0.8, 5: 0.5, 6: 0.9 }
+  # confidence: {1: 0.1, 2: 0.1, 3: 0.1, 4: 0.1, 5: 0.1, 6: 0.1 }
+  in_channels: 7
   dim_input: 6
   dim_features: 8
   dim_output: [16, 64, 128, 256, 512]
@@ -53,7 +54,7 @@ pipeline:
     lr: 0.001
   batch_size: 4
   main_log_dir: ./test
-  max_epoch: 50
+  max_epoch: 100
   save_ckpt_freq: 1
   scheduler_gamma: 0.99
   test_batch_size: 1

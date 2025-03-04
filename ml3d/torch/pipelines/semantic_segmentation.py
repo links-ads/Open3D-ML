@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from os.path import exists, join
 from pathlib import Path
-
+import time
 import numpy as np
 import torch
 
@@ -124,6 +124,7 @@ class SemanticSegmentation(BasePipeline):
             **kwargs,
         )
         self.end_threshold = end_threshold
+        self.points=0
         self.inds = inds
 
     def run_inference(self, data):
@@ -243,6 +244,8 @@ class SemanticSegmentation(BasePipeline):
         record_summary = cfg.get("summary").get("record_for", [])
         log.info("Started testing")
 
+        start_time = time.time()
+        
         with torch.no_grad():
             for unused_step, inputs in enumerate(test_loader):
                 if hasattr(inputs["data"], "to"):
@@ -266,7 +269,8 @@ class SemanticSegmentation(BasePipeline):
                         gt_labels = gt_labels[inds]
 
                     if (gt_labels > 0).any():
-                 
+                        log.info(f"predict_labels prima di valid: {torch.unique(torch.tensor(inference_result['predict_labels']))}")
+                        log.info(f"gt_labels: {torch.unique(torch.tensor(gt_labels))}")
                         valid_scores, valid_labels,_ = filter_valid_label(
                             torch.tensor(inference_result["predict_scores"]).to(device),
                             torch.tensor(gt_labels).to(device),
@@ -274,6 +278,9 @@ class SemanticSegmentation(BasePipeline):
                             model.cfg.ignored_label_inds,
                             device,
                         )
+                        log.info(f"gt_label: {torch.unique(valid_labels)}")
+                        predict_label=torch.argmax(valid_scores, 1)
+                        log.info(f"predict_label: {torch.unique(predict_label)}")
                         #stampare cloud id
                         self.metric_test.update(valid_scores, valid_labels)
                         log.info(f"Accuracy : {self.metric_test.acc()}") 
@@ -286,14 +293,25 @@ class SemanticSegmentation(BasePipeline):
                         self.summary["test"] = self.get_3d_summary(
                             results, inputs["data"], 0, save_gt=False
                         )
-
+        end_time = time.time()
+        total_time = end_time - start_time
+        
+        
         try:
             log.info(
                 f"Overall Testing Accuracy : {self.metric_test.acc()[-1]}, mIoU : {self.metric_test.iou()[-1]}, f1 score : {self.metric_test.f1_score()[-1]}"
             )
         except:
             log.info(f"Cannot estimate overall accuracy and IoU")
-
+            
+        log.info(f"Total time for testing: {total_time}")
+        points_per_second=self.points/total_time
+        points_per_m2= 50.1
+        time_per_m2=points_per_m2/points_per_second
+        log.info(f"Time per m2: {time_per_m2}")
+        point_per_km2=points_per_m2*1_000_000
+        time_per_km2=point_per_km2/points_per_second
+        log.info(f"Time per km2: {time_per_km2}")
         log.info("Finished testing")
 
     def update_tests(self, sampler, inputs, results):
@@ -304,6 +322,7 @@ class SemanticSegmentation(BasePipeline):
         if self.curr_cloud_id != sampler.cloud_id:
             self.curr_cloud_id = sampler.cloud_id
             num_points = sampler.possibilities[sampler.cloud_id].shape[0]
+            self.points+=num_points
             self.pbar = tqdm(
                 total=num_points,
                 desc="{} {}/{}".format(split, self.curr_cloud_id, len(sampler.dataset)),
