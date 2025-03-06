@@ -38,41 +38,41 @@ def distribution_confidence(file: Path, output_dir: Path):
     
     weighted_means = {}
     
-    colors = ['lightgreen', 'gray', 'darkgreen', 'brown', 'purple', 'blue']
+    # colors = ['lightgreen', 'gray', 'darkgreen', 'brown', 'purple', 'blue']
     
-    captions = ['(a)', '(b)', '(c)', '(d)', '(e)', '(f)']
+    # captions = ['(a)', '(b)', '(c)', '(d)', '(e)', '(f)']
     
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12))  # Crea una griglia 2x3
-    axes = axes.flatten() 
+    # fig, axes = plt.subplots(2, 3, figsize=(18, 12))  # Crea una griglia 2x3
+    # axes = axes.flatten() 
     for i, label in enumerate(unique_labels):
         label_mask = (labels == label)
         label_confidence = confidence[label_mask]
         
-        mean_confidence = np.mean(label_confidence)
         
         unique_confidences, counts = np.unique(label_confidence, return_counts=True)
         weighted_mean_confidence = np.average(unique_confidences, weights=counts)
         
+        weighted_mean_confidence = np.round(weighted_mean_confidence, 2)
         weighted_means[label] = weighted_mean_confidence
         
-        ax = axes[i]
-        sns.histplot(label_confidence, bins=20, kde=True, color=colors[i], label=class_names[label], stat='count', ax=ax,alpha=1.0)
+    #     ax = axes[i]
+    #     sns.histplot(label_confidence, bins=20, kde=True, color=colors[i], label=class_names[label], stat='count', ax=ax,alpha=1.0)
         
-        ax.set_title(f'Distribution of Confidence for {class_names[label]}', fontsize=15)
-        ax.set_xlabel('Confidence', fontsize=12)
-        ax.set_ylabel('Number of points', fontsize=12)
-        ax.yaxis.set_major_formatter(FuncFormatter(y_formatter))
-        ax.legend()
-        ax.grid(False)
+    #     ax.set_title(f'Distribution of Confidence for {class_names[label]}', fontsize=15)
+    #     ax.set_xlabel('Confidence', fontsize=12)
+    #     ax.set_ylabel('Number of points', fontsize=12)
+    #     ax.yaxis.set_major_formatter(FuncFormatter(y_formatter))
+    #     ax.legend()
+    #     ax.grid(False)
 
-        ax.text(0.5, -0.15, captions[i], transform=ax.transAxes, fontsize=14, ha='center', va='top')
+    #     ax.text(0.5, -0.15, captions[i], transform=ax.transAxes, fontsize=14, ha='center', va='top')
     
-    plt.subplots_adjust(wspace=0.4, hspace=0.4)
+    # plt.subplots_adjust(wspace=0.4, hspace=0.4)
      
-    plt.tight_layout()
-    output_file = output_dir / 'all_classes_confidence.png'
-    plt.savefig(output_file)
-    plt.close()
+    # plt.tight_layout()
+    # output_file = output_dir / 'all_classes_confidence.png'
+    # plt.savefig(output_file)
+    # plt.close()
         
         
     return weighted_means
@@ -107,13 +107,17 @@ for wm in all_weighted_means:
 
 average_means = {}
 for label, means in total_means.items():
-    average_means[label] = np.mean(means)
+    average_means[label] = round(np.mean(means), 2)
 
 output_log_file=args.OUT / 'average_confidence.txt'
 with open(output_log_file, 'w') as f:
-    f.write('{')
+   
     for label, mean in average_means.items():
-        f.write(f'{label}: {mean},')
+        if label == list(average_means.keys())[0]:
+            f.write('{')
+        f.write(f'{label}:{mean}')
+        if label != list(average_means.keys())[-1]:
+            f.write(',')
     f.write('}')
 
 logger.info(f'Average weighted means: {average_means}')

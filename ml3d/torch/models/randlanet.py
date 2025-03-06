@@ -58,7 +58,7 @@ class RandLANet(BaseModel):
         augment={},
         return_features=False,
         use_confidence=True,
-        confidence={},
+        confidence={1: 0.1, 2: 0.6, 3: 0.8, 4: 0.8, 5: 0.5, 6: 0.9},
         weighted_confidence=False,
         use_max_confidence=True,
         use_intensity=True,

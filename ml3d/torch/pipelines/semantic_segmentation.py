@@ -462,7 +462,7 @@ class SemanticSegmentation(BasePipeline):
         record_summary = cfg.get("summary").get("record_for", [])
 
         log.info("Started training")
-
+        curr_val_miou=-1
         for epoch in range(0, cfg.max_epoch + 1):
 
             log.info(f"=== EPOCH {epoch:d}/{cfg.max_epoch:d} ===")
@@ -539,7 +539,11 @@ class SemanticSegmentation(BasePipeline):
                         )
 
             self.save_logs(writer, epoch)
-
+            
+            if self.metric_val.iou()[-1] > curr_val_miou:
+                curr_val_miou=self.metric_val.iou()[-1]
+                self.save_best_ckpt(epoch)
+                
             if epoch % cfg.save_ckpt_freq == 0 or epoch == cfg.max_epoch:
                 self.save_ckpt(epoch)
 
@@ -947,6 +951,21 @@ class SemanticSegmentation(BasePipeline):
             join(path_ckpt, f"ckpt_{epoch:05d}.pth"),
         )
         log.info(f"Epoch {epoch:3d}: save ckpt to {path_ckpt:s}")
+    
+    def save_best_ckpt(self, epoch):
+        """Save a checkpoint at the passed epoch."""
+        path_ckpt = join(self.cfg.logs_dir, "checkpoint")
+        make_dir(path_ckpt)
+        torch.save(
+            dict(
+                epoch=epoch,
+                model_state_dict=self.model.state_dict(),
+                optimizer_state_dict=self.optimizer.state_dict(),
+                scheduler_state_dict=self.scheduler.state_dict(),
+            ),
+            join(path_ckpt, f"ckpt_best.pth"),
+        )
+        log.info(f"Best epoch : save ckpt to {path_ckpt:s}")
 
     def save_config(self, writer):
         """Save experiment configuration with tensorboard summary."""
