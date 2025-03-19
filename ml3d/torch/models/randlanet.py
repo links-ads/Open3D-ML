@@ -57,11 +57,12 @@ class RandLANet(BaseModel):
         ckpt_path=None,
         augment={},
         return_features=False,
-        use_confidence=True,
-        confidence={1: 0.1, 2: 0.6, 3: 0.8, 4: 0.8, 5: 0.5, 6: 0.9},
+        use_confidence=False,
+        # confidence={1: 0.1, 2: 0.6, 3: 0.8, 4: 0.8, 5: 0.5, 6: 0.9},
+        confidence={},
         weighted_confidence=False,
-        use_max_confidence=True,
-        use_intensity=True,
+        use_max_confidence=False,
+        use_intensity=False,
         **kwargs,
     ):
 
@@ -286,7 +287,7 @@ class RandLANet(BaseModel):
         if feat is not None:
             feat_sub = feat[selected_idxs]
             feat = feat_sub.copy()
-        if confidence is not None:
+        if confidence is not None and self.use_confidence == True:
             confidence_sub = confidence[selected_idxs]
             confidence = confidence_sub.copy()
 

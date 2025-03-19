@@ -194,67 +194,7 @@ class PointTransformer(BaseModel):
 
         feat = self.cls(feats[1])
         return feat
-    
-    # def preprocess(self, data, attr):
-    #     """Data preprocessing function.
 
-    #     This function is called before training to preprocess the data from a
-    #     dataset. It consists of subsampling pointcloud with voxelization.
-
-    #     Args:
-    #         data: A sample from the dataset.
-    #         attr: The corresponding attributes.
-
-    #     Returns:
-    #         Returns the preprocessed data
-
-    #     """
-    #     cfg = self.cfg
-    #     points = np.array(data['point'], dtype=np.float32)
-
-    #     if data.get('label') is None:
-    #         labels = np.zeros((points.shape[0],), dtype=np.int32)
-    #     else:
-    #         labels = np.array(data['label'], dtype=np.int32).reshape((-1,))
-
-    #     if data.get('feat') is None:
-    #         feat = None
-    #     else:
-    #         feat = np.array(data['feat'], dtype=np.float32)
-
-    #     data = dict()
-
-    #     if (cfg.voxel_size):
-    #         points_min = np.min(points, 0)
-    #         points -= points_min
-
-    #         if (feat is None):
-    #             sub_points, sub_labels = DataProcessing.grid_subsampling(
-    #                 points, labels=labels, grid_size=cfg.voxel_size)
-    #             sub_feat = None
-    #         else:
-    #             sub_points, sub_feat, sub_labels = DataProcessing.grid_subsampling(
-    #                 points,
-    #                 features=feat,
-    #                 labels=labels,
-    #                 grid_size=cfg.voxel_size)
-    #     else:
-    #         sub_points, sub_feat, sub_labels = points, feat, labels
-
-    #     search_tree = KDTree(sub_points)
-
-    #     data['point'] = sub_points
-    #     data['feat'] = sub_feat
-    #     data['label'] = sub_labels
-    #     data['search_tree'] = search_tree
-
-    #     if attr['split'] in ["test", "testing"]:
-    #         proj_inds = np.squeeze(
-    #             search_tree.query(points, return_distance=False))
-    #         proj_inds = proj_inds.astype(np.int32)
-    #         data['proj_inds'] = proj_inds
-
-    #     return data
     def preprocess(self, data, attr):
         """Data preprocessing function.
 
@@ -411,75 +351,6 @@ class PointTransformer(BaseModel):
 
         return data
 
-    # def transform(self, data, attr):
-    #     """Transform function for the point cloud and features.
-
-    #     This function is called after preprocess method. It consists
-    #     of calling augmentation and normalizing the pointcloud.
-
-    #     Args:
-    #         data: A sample from the dataset.
-    #         attr: The corresponding attributes.
-
-    #     Returns:
-    #         Returns dictionary data with keys
-    #         (point, feat, label).
-
-    #     """
-    #     if torch.utils.data.get_worker_info():
-    #         seedseq = np.random.SeedSequence(
-    #             torch.utils.data.get_worker_info().seed
-    #             + torch.utils.data.get_worker_info().id
-    #         )
-    #         rng = np.random.default_rng(seedseq.spawn(1)[0])
-    #     else:
-    #         rng = self.rng
-            
-    #     cfg = self.cfg
-    #     points = data['point']
-    #     feat = data["feat"] if data["feat"] is not None else None
-    #     labels = data['label']
-
-    #     augment_cfg = self.cfg.get("augment", {}).copy()
-    #     val_augment_cfg = {}
-    #     if "recenter" in augment_cfg:
-    #         val_augment_cfg["recenter"] = augment_cfg.pop("recenter")
-    #     if "normalize" in augment_cfg:
-    #         val_augment_cfg["normalize"] = augment_cfg.pop("normalize")
-      
-
-    #     self.augmenter.augment(points, feat, labels, val_augment_cfg, seed=rng)
-    
-    #     if attr["split"] in ["training", "train"]:
-    #         points, feat, labels = self.augmenter.augment(
-    #             points, feat, labels, augment_cfg, seed=rng
-    #         )
-
-
-    #     #if attr['split'] not in ['test', 'testing']:
-    #     if cfg.max_voxels and data['label'].shape[0] > cfg.max_voxels:
-    #         init_idx = np.random.randint(
-    #             labels.shape[0]
-    #         ) if 'train' in attr['split'] else labels.shape[0] // 2
-    #         crop_idx = np.argsort(
-    #             np.sum(np.square(points - points[init_idx]),
-    #                     1))[:cfg.max_voxels]
-    #         if feat is not None:
-    #             points, feat, labels = points[crop_idx], feat[
-    #                 crop_idx], labels[crop_idx]
-    #         else:
-    #             points, labels = points[crop_idx], labels[crop_idx]
-
-    #     points_min, points_max = np.min(points, 0), np.max(points, 0)
-    #     points -= (points_min + points_max) / 2.0
-
-    #     data['point'] = torch.from_numpy(points).to(torch.float32)
-    #     if feat is not None:
-    #         data['feat'] = torch.from_numpy(feat).to(torch.float32) / 255.0
-    #     data['label'] = torch.from_numpy(labels).to(torch.int64)
-
-    #     return data
-
     def update_probs(self, inputs, results, test_probs):
         result = results.reshape(-1, self.cfg.num_classes)
         probs = torch.nn.functional.softmax(result, dim=-1).cpu().data.numpy()
@@ -487,39 +358,7 @@ class PointTransformer(BaseModel):
         self.trans_point_sampler(patchwise=False)
 
         return probs
-    # def update_probs(self, inputs, results, test_probs):
-    #     """Update test probabilities with probs from current tested patch.
 
-    #     Args:
-    #         inputs: input to the model.
-    #         results: output of the model.
-    #         test_probs: probabilities for whole pointcloud
-
-    #     Returns:
-    #         updated probabilities
-
-    #     """
-       
-    #     self.test_smooth = 0.95
-      
-    #     for b in range(results.size()[0]):
-
-    #         result = torch.reshape(results[b], (-1, self.cfg.num_classes))
-    #         probs = torch.nn.functional.softmax(result, dim=-1)
-    #         probs = probs.cpu().data.numpy()
-    #         inds = inputs["data"].point_inds.cpu().numpy()[b]
-    #         old_probs = test_probs[inds]
-    #         mask = (old_probs != 0).any(axis=0)
-            
-    #         # if self.use_max_confidence:
-    #         #     new_probs = np.where(mask[:, None], np.maximum(self.test_smooth * old_probs + (1 - self.test_smooth) * probs, old_probs), probs)
-    #         #     test_probs[inds] = new_probs
-    #         # else:
-    #         test_probs[inds] = np.where(mask, self.test_smooth * old_probs + (1 - self.test_smooth) * probs, probs)
-            
-
-    #     return test_probs
-  
 
     def inference_begin(self):
         data = self.preprocess(data, {'split': 'test'})

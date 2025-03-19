@@ -34,16 +34,16 @@ def distribution_confidence(file: Path, output_dir: Path):
     sns.set_theme(style='whitegrid')
     
     def y_formatter(x, pos):
-        return f'{x:.1e}'
+        return f'$10^{{{int(np.log10(x))}}}$' if x != 0 else '0'
     
     weighted_means = {}
     
-    # colors = ['lightgreen', 'gray', 'darkgreen', 'brown', 'purple', 'blue']
+    colors = ['#03A678', 'gray', '#064004', '#8C4126', '#814BA6', '#2E4BF2']
     
-    # captions = ['(a)', '(b)', '(c)', '(d)', '(e)', '(f)']
+    captions = ['(a)', '(b)', '(c)', '(d)', '(e)', '(f)']
     
-    # fig, axes = plt.subplots(2, 3, figsize=(18, 12))  # Crea una griglia 2x3
-    # axes = axes.flatten() 
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))  # Crea una griglia 2x3
+    axes = axes.flatten() 
     for i, label in enumerate(unique_labels):
         label_mask = (labels == label)
         label_confidence = confidence[label_mask]
@@ -55,24 +55,30 @@ def distribution_confidence(file: Path, output_dir: Path):
         weighted_mean_confidence = np.round(weighted_mean_confidence, 2)
         weighted_means[label] = weighted_mean_confidence
         
-    #     ax = axes[i]
-    #     sns.histplot(label_confidence, bins=20, kde=True, color=colors[i], label=class_names[label], stat='count', ax=ax,alpha=1.0)
+        ax = axes[i]
+        sns.histplot(label_confidence, bins=20, kde=True, color=colors[i], label=class_names[label], stat='count', ax=ax,alpha=1.0)
         
-    #     ax.set_title(f'Distribution of Confidence for {class_names[label]}', fontsize=15)
-    #     ax.set_xlabel('Confidence', fontsize=12)
-    #     ax.set_ylabel('Number of points', fontsize=12)
-    #     ax.yaxis.set_major_formatter(FuncFormatter(y_formatter))
-    #     ax.legend()
-    #     ax.grid(False)
+        # ax.set_title(f'Distribution of Confidence for {class_names[label]}', fontsize=15)
+        ax.set_xlabel('Confidence', fontsize=12)
+        ax.set_ylabel('Number of points', fontsize=12)
+        ax.yaxis.set_major_formatter(FuncFormatter(y_formatter))
+       
 
-    #     ax.text(0.5, -0.15, captions[i], transform=ax.transAxes, fontsize=14, ha='center', va='top')
+        ax.text(0.5, -0.15, captions[i], transform=ax.transAxes, fontsize=14, ha='center', va='top')
+
+        ax.axvline(weighted_mean_confidence, color='black', linestyle='--', linewidth=2, label='Weighted Mean Confidence')
+        ax.text(weighted_mean_confidence + 0.02, ax.get_ylim()[1] * 0.9, f'{weighted_mean_confidence:.2f}', 
+                color='black', ha='left', va='center', fontsize=9, bbox=dict(facecolor='white', alpha=0.5))
     
-    # plt.subplots_adjust(wspace=0.4, hspace=0.4)
+        ax.legend(fontsize='small')
+        ax.grid(False)
+    
+    plt.subplots_adjust(wspace=0.4, hspace=0.4)
      
-    # plt.tight_layout()
-    # output_file = output_dir / 'all_classes_confidence.png'
-    # plt.savefig(output_file)
-    # plt.close()
+    plt.tight_layout()
+    output_file = output_dir / 'all_classes_confidence.png'
+    plt.savefig(output_file)
+    plt.close()
         
         
     return weighted_means

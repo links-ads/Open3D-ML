@@ -14,9 +14,10 @@ dataset:
   num_points: 65536
   steps_per_epoch_train: 200
   steps_per_epoch_valid: 10
-  test_dir: train
+  dataset_path: /nfs/home/intini/Open3D-ML/test/turin_confidence_iter0/dataset
+  test_dir: test
   test_result_folder: ./test
-  train_dir: train
+  train_dir: trainA
   use_cache: true
   val_dir: val
 model:
@@ -44,12 +45,7 @@ model:
       method: all
   batcher: DefaultBatcher
   ckpt_path:
-  confidence:
-    1: 0.88
-    2: 0.85
-    3: 0.94
-    4: 0.91
-    5: 0.78
+  confidence: {1: 0.1, 2: 0.6, 3: 0.8, 4: 0.8, 5: 0.5, 6: 0.9}
   dim_features: 8
   dim_input: 6
   dim_output:
@@ -74,6 +70,8 @@ model:
   - 4
   - 2
   use_confidence: true
+  use_max_confidence: true
+  use_intensity: true
 pipeline:
   batch_size: 4
   main_log_dir: ./test
