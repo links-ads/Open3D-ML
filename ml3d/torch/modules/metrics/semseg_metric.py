@@ -90,6 +90,39 @@ class SemSegMetric(object):
 
     def reset(self):
         self.confusion_matrix = None
+    
+    def f1_score(self):
+        """Compute the per-class F1-score and the mean F1-score.
+
+        Returns:
+            A list of floats of length num_classes+1.
+            Consists of per class F1-score. Last item is macro F1-score.
+        """
+        if self.confusion_matrix is None:
+            return None
+
+        f1_scores = []
+        for label in range(self.num_classes):
+            tp = np.longlong(self.confusion_matrix[label, label])
+            fn = np.longlong(self.confusion_matrix[label, :].sum()) - tp
+            fp = np.longlong(self.confusion_matrix[:, label].sum()) - tp
+
+            if tp + fp == 0 or tp + fn == 0:
+                f1 = float('nan')
+            else:
+                precision = tp / (tp + fp)
+                recall = tp / (tp + fn)
+                if precision + recall == 0:
+                    f1 = 0
+                else:
+                    f1 = 2 * (precision * recall) / (precision + recall)
+
+            f1_scores.append(f1)
+
+        macro_f1 = np.nanmean(f1_scores)
+        f1_scores.append(macro_f1)
+
+        return f1_scores
 
     @staticmethod
     def get_confusion_matrix(scores, labels):

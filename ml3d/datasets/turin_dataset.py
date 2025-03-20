@@ -64,9 +64,9 @@ class TurinDataset3DSplit(ABC):
             axis=1,
         )
         feat = (feat >> 8).astype(np.float32)
-        if self.split != "test":
+        try:
             labels = np.array(data.classification, dtype=np.int32)
-        else:
+        except:
             labels = np.zeros((points.shape[0]), dtype=np.int32)
 
         data = {"point": points, "feat": feat, "label": labels}

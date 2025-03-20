@@ -263,6 +263,7 @@ class SemanticSegmentation(BasePipeline):
                         self.metric_test.update(valid_scores, valid_labels)
                         log.info(f"Accuracy : {self.metric_test.acc()}")
                         log.info(f"IoU : {self.metric_test.iou()}")
+                        log.info(f"f1 score : {self.metric_test.f1_score()}")
                     dataset.save_test_result(inference_result, attr)
                     # Save only for the first batch
                     if "test" in record_summary and "test" not in self.summary:
@@ -272,7 +273,7 @@ class SemanticSegmentation(BasePipeline):
 
         try:
             log.info(
-                f"Overall Testing Accuracy : {self.metric_test.acc()[-1]}, mIoU : {self.metric_test.iou()[-1]}"
+                f"Overall Testing Accuracy : {self.metric_test.acc()[-1]}, mIoU : {self.metric_test.iou()[-1]}, f1 score : {self.metric_test.f1_score()[-1]}"
             )
         except:
             log.info(f"Cannot estimate overall accuracy and IoU")
@@ -798,6 +799,9 @@ class SemanticSegmentation(BasePipeline):
 
         train_ious = self.metric_train.iou()
         val_ious = self.metric_val.iou()
+        
+        train_f1s = self.metric_train.f1_score()
+        val_f1s = self.metric_val.f1_score()
 
         loss_dict = {
             "Training loss": np.mean(self.losses),
@@ -812,12 +816,19 @@ class SemanticSegmentation(BasePipeline):
             {"Training IoU": iou, "Validation IoU": val_iou}
             for iou, val_iou in zip(train_ious, val_ious)
         ]
+        
+        f1_dicts = [
+            {"Training F1": f1, "Validation F1": val_f1}
+            for f1, val_f1 in zip(train_f1s, val_f1s)
+        ]
 
         for key, val in loss_dict.items():
             writer.add_scalar(key, val, epoch)
         for key, val in acc_dicts[-1].items():
             writer.add_scalar("{}/ Overall".format(key), val, epoch)
         for key, val in iou_dicts[-1].items():
+            writer.add_scalar("{}/ Overall".format(key), val, epoch)
+        for key, val in f1_dicts[-1].items():
             writer.add_scalar("{}/ Overall".format(key), val, epoch)
 
         log.info(
@@ -831,6 +842,10 @@ class SemanticSegmentation(BasePipeline):
         log.info(
             f"Mean IoU train: {iou_dicts[-1]['Training IoU']:.3f} "
             f" eval: {iou_dicts[-1]['Validation IoU']:.3f}"
+        )
+        log.info(
+            f"Mean F1 train: {f1_dicts[-1]['Training F1']:.3f} "
+            f" eval: {f1_dicts[-1]['Validation F1']:.3f}"
         )
 
         for stage in self.summary:
